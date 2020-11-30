@@ -16,14 +16,14 @@ uwsgi --stop script/uwsgi.pid
 
 ## Todo
 
-[x] Basic Challenge Manage
-[x] Basic User Profile
-[x] Basic Scoreboard
-[ ] ChangePassword
-[ ] Notification Manage
-[ ] Dynamic Challenge Score Support
-[ ] Dynamic Docker Challenge Support
-[ ] Team Support
+- [x] Basic Challenge Manage
+- [x] Basic User Profile
+- [x] Basic Scoreboard
+- [ ] ChangePassword
+- [ ] Notification Manage
+- [ ] Dynamic Challenge Score Support
+- [ ] Dynamic Docker Challenge Support
+- [ ] Team Support
 
 
 **Under Construction**
