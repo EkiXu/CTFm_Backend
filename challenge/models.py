@@ -6,7 +6,7 @@ class ChallengeCategory(models.Model):
     name = models.CharField(max_length=64,unique=True)
     description = models.CharField(max_length=512)
     icon = models.CharField(max_length=256,default="")
-    challenge_amount = models.IntegerField(default=0)
+    #challenge_amount = models.IntegerField(default=0)
     updated_at = models.DateTimeField(auto_now=True)
 
 class Challenge(models.Model):
@@ -23,7 +23,7 @@ class Challenge(models.Model):
     flag = models.CharField(max_length=512,default="")
 
     category = models.ForeignKey(
-        ChallengeCategory,on_delete=models.CASCADE)
+        ChallengeCategory,related_name='challenges',on_delete=models.CASCADE)
 
 class SolutionDetail(models.Model):
     challenge = models.ForeignKey(Challenge,on_delete=models.CASCADE)

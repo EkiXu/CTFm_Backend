@@ -6,12 +6,18 @@ from challenge.models import Challenge,SolutionDetail,ChallengeCategory
 from django.contrib.auth import get_user_model
 
 class ChallengeCategorySerializer(serializers.ModelSerializer):
+    challenge_amount = serializers.SerializerMethodField()
+    
     class Meta:
         model = ChallengeCategory
         fields = ["id","name","icon","description","challenge_amount","updated_at"]
         read_only_fields = [
             "id","challenge_amount","updated_at"
         ]
+    
+    def get_challenge_amount(self, obj):
+        return obj.challenges.count()
+    
 
 class FullChallengeSerializer(serializers.ModelSerializer):
     class Meta:
