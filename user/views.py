@@ -68,9 +68,11 @@ class UserViewSet(viewsets.ModelViewSet):
 
     pagination_class = LimitOffsetPagination
     def get_serializer_class(self):
-        if self.action == "create" or self.action == "retrieve":
+        if self.action == "create":
+            return serializers.RegisterSerializer
+        elif self.action == "retrieve":
             return serializers.UserDetailSerializer
-        if self.action == 'update':
+        elif self.action == 'update':
             return serializers.UserDetailUpdateSerializer
         else : 
             return serializers.UserSerializer
@@ -106,13 +108,20 @@ class UserViewSet(viewsets.ModelViewSet):
         if not user:
             return Response({"detail":"Wrong Password"}, status=status.HTTP_400_BAD_REQUEST)
         
-        partial = kwargs.pop('partial', False)
-        instance = self.get_object()
-        serializer = self.get_serializer(instance, data=request.data, partial=partial)
-        serializer.is_valid(raise_exception=True)
-        self.perform_update(serializer)
+        new_password = request.data.get('new_password',None)
 
-        if getattr(instance, '_prefetched_objects_cache', None):
-            instance._prefetched_objects_cache = {}
+        if new_password:
+            if len(new_password) >= 8:
+                user.set_password(new_password)
+                user.save()
+            else: 
+                return Response({"detail":"New Password too short"}, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = serializers.UserDetailUpdateSerializer(user, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
 
         return Response(serializer.data)
+
+
+        

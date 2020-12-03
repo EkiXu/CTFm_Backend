@@ -31,11 +31,11 @@ class UserDetailSerializer(serializers.ModelSerializer):
         ]
 
 class UserDetailUpdateSerializer(serializers.ModelSerializer):
-    #new_password = serializers.CharField(write_only=True)
+    new_password = serializers.CharField(write_only=True,required=False,allow_blank=True)
     old_password = serializers.CharField(write_only=True)
     class Meta:
         model = UserModel
-        fields = ("id","email","username","nickname","solved_amount","points","old_password")
+        fields = ("id","email","username","nickname","solved_amount","points","old_password","new_password")
         read_only_fields = [
             "id",
             "username",
