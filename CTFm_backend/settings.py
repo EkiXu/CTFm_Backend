@@ -25,7 +25,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.environ.get('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 ALLOWED_HOSTS = "*"
 
@@ -44,6 +44,8 @@ INSTALLED_APPS = [
     'rest_framework_nested',
     'challenge.apps.ChallengeConfig',
     'user.apps.UserConfig',
+    'notification.apps.NotificationConfig',
+    #'channels',
 ]
 
 MIDDLEWARE = [
@@ -89,6 +91,18 @@ DATABASES = {
     }
 }
 
+'''
+ASGI_APPLICATION = 'CTFm_backend.routing.application'
+
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "asgi_redis.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [("localhost", 6379)],
+        },
+    },
+}
+'''
 
 # Password validation
 # https://docs.djangoproject.com/en/3.1/ref/settings/#auth-password-validators
@@ -126,7 +140,7 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.1/howto/static-files/
 
-STATIC_ROOT = "./backend_static/"
+#STATIC_ROOT = "./backend_static/"
 
 STATIC_URL = '/backend_static/'
 
