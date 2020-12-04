@@ -19,9 +19,9 @@ uwsgi --stop script/uwsgi.pid
 - [x] Basic Challenge Manage
 - [x] Basic User Profile
 - [x] Basic Scoreboard
-- [ ] ChangePassword
+- [x] ChangePassword
 - [ ] Notification Manage
-- [ ] Dynamic Challenge Score Support
+- [x] Dynamic Challenge Score Support
 - [ ] Dynamic Docker Challenge Support
 - [ ] Team Support
 

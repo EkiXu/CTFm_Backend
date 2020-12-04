@@ -7,7 +7,6 @@ from django.contrib.auth import get_user_model
 
 class ChallengeCategorySerializer(serializers.ModelSerializer):
     challenge_amount = serializers.SerializerMethodField()
-    
     class Meta:
         model = ChallengeCategory
         fields = ["id","name","icon","description","challenge_amount","updated_at"]
@@ -26,12 +25,12 @@ class FullChallengeSerializer(serializers.ModelSerializer):
         read_only_fields = [
             "id",
             "solved_amount",
-            "solved",
         ]
 
 class ChallengeSerializer(serializers.ModelSerializer):
     solved = serializers.SerializerMethodField()
-
+    #points = serializers.SerializerMethodField()
+    #solved_amount = serializers.SerializerMethodField()
     class Meta:
         model = Challenge
         fields = ['id','category', 'title','summary', 'author','difficulty','points','solved_amount','solved']
@@ -39,6 +38,7 @@ class ChallengeSerializer(serializers.ModelSerializer):
             "id",
             "solved_amount",
             "solved",
+            "points"
         ]
 
     def get_solved(self,obj):
@@ -50,6 +50,13 @@ class ChallengeSerializer(serializers.ModelSerializer):
             return True
         except ObjectDoesNotExist:
             return False
+    '''
+    def get_points(obj):
+        return obj.get_points()
+
+    def get_solved_amount(obj):
+        return obj.get_solved_amount()
+    '''
 
 class ChallengeDetailSerializer(ChallengeSerializer):
     class Meta:

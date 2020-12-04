@@ -96,12 +96,8 @@ class ChallengeViewSet(viewsets.ModelViewSet):
                 user = request.user
                 detail = SolutionDetail(challenge = challenge,user = user)
                 detail.save()
-                challenge.solved_amount =challenge.solved_amount+1
-                challenge.save(update_fields=["solved_amount"])
-                user.points  = user.points + challenge.points
-                user.solved_amount = user.solved_amount + 1
                 user.last_point_at = timezone.now()
-                user.save(update_fields=["solved_amount","points","last_point_at"])
+                user.save(update_fields=["last_point_at"])
                 return Response({'detail': 'Solved Successfully'})
             else:
                 return Response({'detail': 'Wrong Flag'},status=status.HTTP_400_BAD_REQUEST)
