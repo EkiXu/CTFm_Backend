@@ -1,17 +1,18 @@
 #from django.contrib.auth import get_user_model
 from django.core.exceptions import ObjectDoesNotExist
 from django.contrib import auth
+from django.contrib.auth.hashers import make_password,check_password
 from rest_framework import viewsets
 from rest_framework.pagination import LimitOffsetPagination
 from rest_framework import permissions
 from rest_framework import status
-from rest_framework.decorators import api_view, permission_classes 
+from rest_framework.decorators import api_view, permission_classes,action
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
-
-from user.models import User
 from user import serializers
 from user.pemissions import IsOwner, IsOwnerOrAdmin
+
+UserModel = auth.get_user_model()
 
 @api_view(['GET'])
 @permission_classes([permissions.IsAuthenticated])
@@ -64,9 +65,15 @@ class UserViewSet(viewsets.ModelViewSet):
     User viewset automatically provides `list`, `create`, `retrieve`,
     `update` and `destroy` actions.
     """
-    queryset = User.objects.all()
-
+    queryset = UserModel.objects.all().filter(is_hidden=False)
     pagination_class = LimitOffsetPagination
+
+    def get_queryset(self):
+        queryset = UserModel.objects.all()
+        if self.action == "getFull" or self.action == "fullDetail" or self.action == "update" or self.action == "retrieve":
+            return queryset
+        return queryset.filter(is_hidden=False)
+
     def get_serializer_class(self):
         if self.action == "create":
             return serializers.RegisterSerializer
@@ -74,8 +81,11 @@ class UserViewSet(viewsets.ModelViewSet):
             return serializers.UserDetailSerializer
         elif self.action == 'update':
             return serializers.UserDetailUpdateSerializer
+        elif self.action == "fullDetail":
+            return serializers.UserFullSerializer
         else : 
             return serializers.UserSerializer
+
     def get_permissions(self):
         """
         Instantiates and returns the list of permissions that this view requires.
@@ -84,15 +94,40 @@ class UserViewSet(viewsets.ModelViewSet):
             permission_classes = [permissions.IsAuthenticatedOrReadOnly]
         elif self.action == 'retrieve' or self.action == 'update':
             permission_classes = [permissions.IsAuthenticated,IsOwnerOrAdmin]
-        elif self.action == 'create':
-            permission_classes = [permissions.IsAdminUser] 
+        elif self.action == 'create' or self.action == 'fullDetail' or self.action == 'getFull':
+            permission_classes = [permissions.IsAdminUser]
         else:
             permission_classes = [permissions.IsAuthenticated]
         return [permission() for permission in permission_classes]
     
+    @action(detail=True,methods=['GET','PUT'],url_name='fullDetail',url_path='full')
+    def fullDetail(self,request,pk=None,*args,**kwargs):
+        user = self.get_object()
+        if request.method == 'GET':
+            serializer = serializers.UserFullSerializer(user)
+            return Response(serializer.data)
+        elif request.method == 'PUT':
+            new_password = request.data.get('new_password',None)
+            if new_password:
+                if len(new_password) >= 8:
+                    user.set_password(new_password)
+                    user.save()
+                else:
+                    return Response({"detail":"New Password too short"}, status=status.HTTP_400_BAD_REQUEST)
+            serializer = serializers.UserFullSerializer(user, data=request.data)
+            if serializer.is_valid():
+                serializer.save()
+            return Response(serializer.data)
+    
+    @action(detail=False,methods=['GET'],url_name='getFull',url_path='full')
+    def getFull(self,request,*args,**kwargs):
+        users = UserModel.objects.all()
+        serializer = serializers.UserFullSerializer(users,many=True)
+        return Response(serializer.data)
+
+    
     def perform_create(self, serializer):
         serializer.save()
-
 
 
     def update(self, request, *args, **kwargs):
@@ -101,7 +136,7 @@ class UserViewSet(viewsets.ModelViewSet):
             password = request.data['old_password']
         except KeyError:
             return Response({"detail":"Password are required."}, status=status.HTTP_400_BAD_REQUEST)
-        if request.user and request.user.is_staff:
+        if request.user:
             user = self.get_object()
         else: 
             user = auth.authenticate(username=username, password=password)
@@ -113,10 +148,10 @@ class UserViewSet(viewsets.ModelViewSet):
         if new_password:
             if len(new_password) >= 8:
                 user.set_password(new_password)
-                user.save()
             else: 
                 return Response({"detail":"New Password too short"}, status=status.HTTP_400_BAD_REQUEST)
-
+        
+        user.save()
         serializer = serializers.UserDetailUpdateSerializer(user, data=request.data)
         if serializer.is_valid():
             serializer.save()

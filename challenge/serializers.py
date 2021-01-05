@@ -15,6 +15,12 @@ class ChallengeCategorySerializer(serializers.ModelSerializer):
         ]
     
     def get_challenge_amount(self, obj):
+        return obj.challenges.filter(is_hidden=False).count()
+
+class FullChallengeCategorySerializer(ChallengeCategorySerializer):
+    challenge_amount = serializers.SerializerMethodField()
+    
+    def get_challenge_amount(self, obj):
         return obj.challenges.count()
     
 
@@ -25,18 +31,30 @@ class FullChallengeSerializer(serializers.ModelSerializer):
         read_only_fields = [
             "id",
             "solved_amount",
+            "attempt_amount",
+            "points",
         ]
 
-class ChallengeSerializer(serializers.ModelSerializer):
-    solved = serializers.SerializerMethodField()
-    #points = serializers.SerializerMethodField()
-    #solved_amount = serializers.SerializerMethodField()
+class BaseChallengeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Challenge
-        fields = ['id','category', 'title','summary', 'author','difficulty','points','solved_amount','solved']
+        fields = ['id','category', 'title','summary', 'author','points','solved_amount','attempt_amount','is_hidden']
         read_only_fields = [
             "id",
             "solved_amount",
+            "attempt_amount",
+            "points"
+        ]
+
+class ChallengeSerializer(BaseChallengeSerializer):
+    solved = serializers.SerializerMethodField()
+    class Meta:
+        model = Challenge
+        fields = ['id','category', 'title','summary', 'author','points','solved_amount','attempt_amount','solved']
+        read_only_fields = [
+            "id",
+            "solved_amount",
+            "attempt_amount",
             "solved",
             "points"
         ]
@@ -46,26 +64,21 @@ class ChallengeSerializer(serializers.ModelSerializer):
         if current_user.is_anonymous:
             return None
         try:
-            detail = SolutionDetail.objects.get(challenge = obj, user = current_user)
+            detail = SolutionDetail.objects.get(challenge = obj, user = current_user,solved = True)
             return True
         except ObjectDoesNotExist:
             return False
-    '''
-    def get_points(obj):
-        return obj.get_points()
-
-    def get_solved_amount(obj):
-        return obj.get_solved_amount()
-    '''
 
 class ChallengeDetailSerializer(ChallengeSerializer):
     class Meta:
         model = Challenge
-        fields = ['id', 'title', 'summary','content','author','difficulty','solved_amount','solved']
+        fields = ['id', 'title', 'summary','content','author','solved_amount','attempt_amount','solved','points']
         read_only_fields = [
             "id",
             "solved_amount",
+            "attempt_amount",
             "solved",
+            "points",
         ]
 
 class FlagSerializer(serializers.Serializer):

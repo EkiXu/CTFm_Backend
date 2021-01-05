@@ -6,7 +6,7 @@ from notification import views
 
 # Create a router and register our viewsets with it.
 router = DefaultRouter()
-router.register(r'notification', views.NotificationViewSet)
+router.register(r'', views.NotificationViewSet)
 
 # 'base_name' is optional. Needed only if the same viewset is registered more than once
 # Official DRF docs on this option: http://www.django-rest-framework.org/api-guide/routers/

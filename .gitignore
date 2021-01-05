@@ -102,3 +102,5 @@ fabfile.py
 *.ini
 *.pid
 *.sock
+
+*.test

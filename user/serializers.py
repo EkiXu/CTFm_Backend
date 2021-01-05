@@ -4,12 +4,11 @@ from rest_framework.validators import UniqueValidator
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from challenge.models import SolutionDetail,Challenge
+from django.db.models.functions import Rank
 
 UserModel = get_user_model()
 
 class UserSerializer(serializers.ModelSerializer):
-    points = serializers.SerializerMethodField()
-    solved_amount = serializers.SerializerMethodField()
     class Meta:
         model = UserModel
         fields = ("id","nickname","solved_amount","points","last_point_at")
@@ -20,17 +19,7 @@ class UserSerializer(serializers.ModelSerializer):
             "points",
             "last_point_at"
         ]
-
-    def get_points(self,obj):
-        value = 0
-        all_solved_challenge = SolutionDetail.objects.filter(user=obj)
-        for solved_challenge in all_solved_challenge:
-            value = value+ solved_challenge.challenge.points
-        return value
-
-    def get_solved_amount(self,obj):
-        amount = SolutionDetail.objects.filter(user = obj).count()
-        return amount
+        ordering = ['points']
 
 class UserDetailSerializer(UserSerializer):
     class Meta:
@@ -39,6 +28,16 @@ class UserDetailSerializer(UserSerializer):
         read_only_fields = [
             "id",
             "username",
+            "points",
+            "solved_amount"
+        ]
+
+class UserFullSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserModel
+        fields =  ("id","email","username","nickname","solved_amount","points","is_hidden","is_staff")
+        read_only_fields = [
+            "id",
             "points",
             "solved_amount"
         ]
