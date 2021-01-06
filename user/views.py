@@ -125,6 +125,12 @@ class UserViewSet(viewsets.ModelViewSet):
         serializer = serializers.UserFullSerializer(users,many=True)
         return Response(serializer.data)
 
+    @action(detail=False,methods=['GET'],url_name='getStatus',url_path='status')
+    def getStatus(self,request,*args,**kwargs):
+        user = request.user
+        if user.is_anonymous:
+            return Response({"detail":"Unauthorized"},status=status.HTTP_401_UNAUTHORIZED)
+        return Response({"is_hidden":user.is_hidden,"is_staff":user.is_staff})
     
     def perform_create(self, serializer):
         serializer.save()
