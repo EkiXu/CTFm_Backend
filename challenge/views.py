@@ -80,10 +80,7 @@ class ChallengeViewSet(viewsets.ReadOnlyModelViewSet):
         """
         Instantiates and returns the list of permissions that this view requires.
         """
-        if self.action == 'list' or self.action == 'retrieve':
-            permission_classes = [IsInContestTimeOrAdminOnly]
-        else:
-            permission_classes = [permissions.IsAuthenticated,IsInContestTimeOrAdminOnly]
+        permission_classes = [permissions.IsAuthenticated]
         return [permission() for permission in permission_classes]
 
     @action(detail=True,methods=['POST'],url_name='checkFlag',url_path='_checkFlag')

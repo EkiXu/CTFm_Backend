@@ -70,7 +70,7 @@ class UserViewSet(viewsets.ModelViewSet):
 
     def destroy(self, request, *args, **kwargs):
         return Response({"detail":"Bad Request!"},status=status.HTTP_400_BAD_REQUEST)
-
+    
     def get_serializer_class(self):
         if self.action == "retrieve":
             return serializers.UserDetailSerializer
@@ -86,9 +86,9 @@ class UserViewSet(viewsets.ModelViewSet):
         if self.action == 'list':
             permission_classes = [permissions.IsAuthenticatedOrReadOnly]
         elif self.action == 'retrieve' or self.action == 'update':
-            permission_classes = [permissions.IsAuthenticated,IsOwnerOrAdmin]
-        elif self.action == 'create' or self.action == 'destroy':
-            permission_classes = [permissions.IsAdminUser]
+            permission_classes = [IsOwnerOrAdmin]
+        elif self.action == 'getStatus':
+            permission_classes = [permissions.IsAuthenticated]
         else:
             permission_classes = [permissions.IsAdminUser]
         return [permission() for permission in permission_classes]
@@ -96,8 +96,6 @@ class UserViewSet(viewsets.ModelViewSet):
     @action(detail=False,methods=['GET'],url_name='getStatus',url_path='status')
     def getStatus(self,request,*args,**kwargs):
         user = request.user
-        if user.is_anonymous:
-            return Response({"detail":"Unauthorized"},status=status.HTTP_401_UNAUTHORIZED)
         return Response({"is_hidden":user.is_hidden,"is_staff":user.is_staff})
 
 
@@ -107,11 +105,10 @@ class UserViewSet(viewsets.ModelViewSet):
             password = request.data['old_password']
         except KeyError:
             return Response({"detail":"Password are required."}, status=status.HTTP_400_BAD_REQUEST)
-        if request.user:
-            user = self.get_object()
-        else: 
-            user = auth.authenticate(username=username, password=password)
-        if not user:
+        
+        user = auth.authenticate(username=username, password=password)
+        
+        if user is None or not user.is_active:
             return Response({"detail":"Wrong Password"}, status=status.HTTP_400_BAD_REQUEST)
         
         new_password = request.data.get('new_password',None)
