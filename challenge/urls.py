@@ -8,6 +8,9 @@ from challenge import views
 router = DefaultRouter()
 router.register(r'category', views.ChallengeCategoryViewSet)
 router.register(r'challenge', views.ChallengeViewSet)
+router.register(r'admin/category', views.AdminChallengeCategoryViewSet)
+router.register(r'admin/challenge', views.AdminChallengeViewSet)
+
 
 challenge_router = routers.NestedSimpleRouter(router, r'category', lookup='category')
 challenge_router.register(r'challenge', views.CategoryChallengeViewset, basename='category-challenges')
@@ -18,6 +21,6 @@ challenge_router.register(r'challenge', views.CategoryChallengeViewset, basename
 # The API URLs are now determined automatically by the router.
 # Additionally, we include the login URLs for the browsable API.
 urlpatterns = [
-    url(r'^', include(router.urls)),
-    url(r'^', include(challenge_router.urls)),
+    url(r'', include(router.urls)),
+    url(r'', include(challenge_router.urls)),
 ]

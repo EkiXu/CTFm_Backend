@@ -8,7 +8,7 @@ from rest_framework.response import Response
 from notification import serializers
 # Create your views here.
 
-class NotificationViewSet(viewsets.ModelViewSet):
+class NotificationViewSet(viewsets.ReadOnlyModelViewSet):
     """
     Notification viewset automatically provides `list`, `create`, `retrieve`,
     `update` and `destroy` actions.
@@ -16,20 +16,15 @@ class NotificationViewSet(viewsets.ModelViewSet):
     queryset = Notification.objects.all()
     serializer_class = serializers.NotificationSerializer
     pagination_class = LimitOffsetPagination
-    
-    def get_serializer_class(self):
-        if self.action == "create" or self.action == "update":
-            return serializers.NotificationSerializer
-        else : 
-            return serializers.NotificationSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
-    def get_permissions(self):
-        """
-        Instantiates and returns the list of permissions that this view requires.
-        """
-        if self.action == "create" or self.action == "update" or self.action == "delete":
-            permission_classes = [permissions.IsAdminUser] 
-        else : 
-            permission_classes = [permissions.IsAuthenticatedOrReadOnly]
-            
-        return [permission() for permission in permission_classes]
+
+class AdminNotificationViewSet(viewsets.ModelViewSet):
+    """
+    Notification viewset automatically provides `list`, `create`, `retrieve`,
+    `update` and `destroy` actions.
+    """
+    queryset = Notification.objects.all()
+    serializer_class = serializers.NotificationSerializer
+    pagination_class = LimitOffsetPagination
+    permission_classes = [permissions.IsAdminUser]

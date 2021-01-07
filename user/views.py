@@ -68,21 +68,14 @@ class UserViewSet(viewsets.ModelViewSet):
     queryset = UserModel.objects.all().filter(is_hidden=False)
     pagination_class = LimitOffsetPagination
 
-    def get_queryset(self):
-        queryset = UserModel.objects.all()
-        if self.action == "getFull" or self.action == "fullDetail" or self.action == "update" or self.action == "retrieve":
-            return queryset
-        return queryset.filter(is_hidden=False)
+    def destroy(self, request, *args, **kwargs):
+        return Response({"detail":"Bad Request!"},status=status.HTTP_400_BAD_REQUEST)
 
     def get_serializer_class(self):
-        if self.action == "create":
-            return serializers.RegisterSerializer
-        elif self.action == "retrieve":
+        if self.action == "retrieve":
             return serializers.UserDetailSerializer
         elif self.action == 'update':
             return serializers.UserDetailUpdateSerializer
-        elif self.action == "fullDetail":
-            return serializers.UserFullSerializer
         else : 
             return serializers.UserSerializer
 
@@ -94,36 +87,11 @@ class UserViewSet(viewsets.ModelViewSet):
             permission_classes = [permissions.IsAuthenticatedOrReadOnly]
         elif self.action == 'retrieve' or self.action == 'update':
             permission_classes = [permissions.IsAuthenticated,IsOwnerOrAdmin]
-        elif self.action == 'create' or self.action == 'fullDetail' or self.action == 'getFull':
+        elif self.action == 'create' or self.action == 'destroy':
             permission_classes = [permissions.IsAdminUser]
         else:
-            permission_classes = [permissions.IsAuthenticated]
+            permission_classes = [permissions.IsAdminUser]
         return [permission() for permission in permission_classes]
-    
-    @action(detail=True,methods=['GET','PUT'],url_name='fullDetail',url_path='full')
-    def fullDetail(self,request,pk=None,*args,**kwargs):
-        user = self.get_object()
-        if request.method == 'GET':
-            serializer = serializers.UserFullSerializer(user)
-            return Response(serializer.data)
-        elif request.method == 'PUT':
-            new_password = request.data.get('new_password',None)
-            if new_password:
-                if len(new_password) >= 8:
-                    user.set_password(new_password)
-                    user.save()
-                else:
-                    return Response({"detail":"New Password too short"}, status=status.HTTP_400_BAD_REQUEST)
-            serializer = serializers.UserFullSerializer(user, data=request.data)
-            if serializer.is_valid():
-                serializer.save()
-            return Response(serializer.data)
-    
-    @action(detail=False,methods=['GET'],url_name='getFull',url_path='full')
-    def getFull(self,request,*args,**kwargs):
-        users = UserModel.objects.all()
-        serializer = serializers.UserFullSerializer(users,many=True)
-        return Response(serializer.data)
 
     @action(detail=False,methods=['GET'],url_name='getStatus',url_path='status')
     def getStatus(self,request,*args,**kwargs):
@@ -131,9 +99,6 @@ class UserViewSet(viewsets.ModelViewSet):
         if user.is_anonymous:
             return Response({"detail":"Unauthorized"},status=status.HTTP_401_UNAUTHORIZED)
         return Response({"is_hidden":user.is_hidden,"is_staff":user.is_staff})
-    
-    def perform_create(self, serializer):
-        serializer.save()
 
 
     def update(self, request, *args, **kwargs):
@@ -164,5 +129,26 @@ class UserViewSet(viewsets.ModelViewSet):
 
         return Response(serializer.data)
 
-
-        
+class AdminUserViewSet(viewsets.ModelViewSet):
+    """
+    User viewset automatically provides `list`, `create`, `retrieve`,
+    `update` and `destroy` actions.
+    """
+    queryset = UserModel.objects.all()
+    pagination_class = LimitOffsetPagination
+    permission_classes = [permissions.IsAdminUser]
+    serializer_class = serializers.UserFullSerializer
+    
+    def update(self,request,*args,**kwargs):
+        user = self.get_object()
+        new_password = request.data.get('new_password',None)
+        if new_password:
+            if len(new_password) >= 8:
+                user.set_password(new_password)
+                user.save()
+            else:
+                return Response({"detail":"New Password too short"}, status=status.HTTP_400_BAD_REQUEST)
+        serializer = serializers.UserFullSerializer(user, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+        return Response(serializer.data)

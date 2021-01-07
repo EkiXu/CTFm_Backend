@@ -10,10 +10,10 @@ from challenge.models import Challenge,SolutionDetail,ChallengeCategory
 from challenge import serializers
 
 from contest.permissions import IsInContestTimeOrAdminOnly
-class ChallengeCategoryViewSet(viewsets.ModelViewSet):
+
+class ChallengeCategoryViewSet(viewsets.ReadOnlyModelViewSet):
     """
-    Project viewset automatically provides `list`, `create`, `retrieve`,
-    `update` and `destroy` actions.
+    Project viewset automatically provides `list`, `retrieve`
     """
     queryset = ChallengeCategory.objects.all()
     serializer_class = serializers.ChallengeCategorySerializer
@@ -25,26 +25,24 @@ class ChallengeCategoryViewSet(viewsets.ModelViewSet):
         """
         if self.action == 'list' or self.action == 'retrieve':
             permission_classes = [IsInContestTimeOrAdminOnly]
-        elif self.action == 'create' or self.action == 'update' or self.action == 'getFull':
-            permission_classes = [permissions.IsAdminUser]
         else:
             permission_classes = [permissions.IsAuthenticated,IsInContestTimeOrAdminOnly]
 
         return [permission() for permission in permission_classes]
     
-    @action(detail=False,methods=['GET'],url_name='full',url_path='full')
-    def getFull(self,request,*args,**kwargs):
-        challenges = ChallengeCategory.objects.all()
-        serializer = serializers.FullChallengeCategorySerializer(challenges,many=True)
-        return Response(serializer.data)
-
-    def perform_create(self, serializer):
-        serializer.save()
-
-class ChallengeViewSet(viewsets.ModelViewSet):
+class AdminChallengeCategoryViewSet(viewsets.ModelViewSet):
     """
-    Challenge viewset automatically provides `list`, `create`,
-    `retrieve`,`update` and `destroy` actions.
+    Project viewset automatically provides `list`, `create`, `retrieve`,
+    `update` and `destroy` actions.
+    """
+    queryset = ChallengeCategory.objects.all()
+    serializer_class = serializers.FullChallengeCategorySerializer
+    pagination_class = LimitOffsetPagination
+    permission_classes = [permissions.IsAdminUser]
+
+class ChallengeViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Challenge viewset automatically provides `list`, retrieve`
     """
     queryset = Challenge.objects.all().filter(is_hidden=False)
     serializer_class = serializers.ChallengeSerializer
@@ -84,23 +82,9 @@ class ChallengeViewSet(viewsets.ModelViewSet):
         """
         if self.action == 'list' or self.action == 'retrieve':
             permission_classes = [IsInContestTimeOrAdminOnly]
-        elif self.action == 'create' or self.action == 'getFull' or self.action == 'getFullDetail':
-            permission_classes = [permissions.IsAdminUser]
         else:
             permission_classes = [permissions.IsAuthenticated,IsInContestTimeOrAdminOnly]
         return [permission() for permission in permission_classes]
-    
-    @action(detail=False,methods=['GET'],url_name='full',url_path='full')
-    def getFull(self,request,*args,**kwargs):
-        challenges = Challenge.objects.all()
-        serializer = serializers.BaseChallengeSerializer(challenges,many=True)
-        return Response(serializer.data)
-    
-    @action(detail=True,methods=['GET'],url_name='full',url_path='full')
-    def getFullDetail(self,request,pk=None,*args,**kwargs):
-        challenge = self.get_object()
-        serializer = serializers.FullChallengeSerializer(challenge)
-        return Response(serializer.data)
 
     @action(detail=True,methods=['POST'],url_name='checkFlag',url_path='_checkFlag')
     def checkFlag(self,request,pk=None,*args,**kwargs):
@@ -138,9 +122,37 @@ class ChallengeViewSet(viewsets.ModelViewSet):
             else:
                 detail.save()
                 return Response({'detail': 'Wrong Flag'},status=status.HTTP_400_BAD_REQUEST)
+
+class AdminChallengeViewSet(viewsets.ModelViewSet):
+    """
+    Challenge viewset automatically provides `list`, `create`,
+    `retrieve`,`update` and `destroy` actions.
+    """
+    queryset = Challenge.objects.all()
+    serializer_class = serializers.FullChallengeSerializer
+    pagination_class = LimitOffsetPagination
+    permission_classes = [permissions.IsAdminUser]
+
+    def get_queryset(self):
+        """
+        Optionally restricts the returned purchases to a given user,
+        by filtering against a `categoryName` query parameter in the URL.
+        """
+        queryset = Challenge.objects.all()
+        categoryName = self.request.query_params.get('categoryName', None)
+        if categoryName is not None:
+            try:
+                category = ChallengeCategory.objects.get(name = categoryName)
+            except ObjectDoesNotExist:
+                return Challenge.objects.none()
+            queryset = queryset.filter(category=category.id)
+        return queryset
     
-    def perform_create(self, serializer):
-        serializer.save()
+    def get_serializer_class(self):
+        if self.action == "list":
+            return serializers.FullChallengeSerializer
+        else : 
+            return serializers.BaseChallengeSerializer
 
 class CategoryChallengeViewset(ChallengeViewSet):
     def get_queryset(self):

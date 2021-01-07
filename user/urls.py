@@ -17,11 +17,12 @@ from rest_framework.routers import DefaultRouter
 
 router = DefaultRouter()
 router.register(r'user', views.UserViewSet)
+router.register(r'admin/user', views.AdminUserViewSet)
 
 urlpatterns = [
     path('auth/register/', views.register),
     path('auth/obtainToken/', views.obtainToken,name="token_obtain"),
     path('auth/refreshToken/', TokenRefreshView.as_view(),name="token_refresh"),
     path('auth/verifyToken/',TokenVerifyView.as_view(), name='token_verify'),
-    url(r'^', include(router.urls)),
+    url(r'', include(router.urls)),
 ]
