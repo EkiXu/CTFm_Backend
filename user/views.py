@@ -3,20 +3,22 @@ from django.contrib import auth
 from django.contrib.auth.hashers import make_password,check_password
 from rest_framework import viewsets
 from rest_framework.pagination import LimitOffsetPagination
-from rest_framework import permissions
+from rest_framework.permissions import IsAuthenticated,AllowAny,IsAdminUser,IsAuthenticatedOrReadOnly
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes,action, throttle_classes
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework.mixins import RetrieveModelMixin,UpdateModelMixin
+from rest_framework.viewsets import GenericViewSet
 
 from user import serializers
 from user import throttles
-from user.pemissions import IsOwner, IsOwnerOrAdmin
+from user import pemissions
 
 UserModel = auth.get_user_model()
 
 @api_view(['GET'])
-@permission_classes([permissions.IsAuthenticated])
+@permission_classes([IsAuthenticated])
 def logout(request):
     """
     Logout by sending token
@@ -27,11 +29,10 @@ def logout(request):
         return Response({"detail":"block successfully"},status=status.HTTP_200_OK)
     except Exception:
         return Response(status=status.HTTP_400_BAD_REQUEST)
-
     
 
 @api_view(['POST'])
-@permission_classes([permissions.AllowAny])
+@permission_classes([AllowAny])
 def register(request):
     """
     Register
@@ -45,7 +46,7 @@ def register(request):
 
 
 @api_view(['POST'])
-@permission_classes([permissions.AllowAny])
+@permission_classes([AllowAny])
 @throttle_classes([throttles.TenPerMinuteUserThrottle])
 def obtainToken(request):
     """
@@ -62,10 +63,12 @@ def obtainToken(request):
     refresh = serializers.MyTokenObtainPairSerializer.get_token(user)
     return Response({"refresh":str(refresh),"access": str(refresh.access_token)})
 
-class UserViewSet(viewsets.ModelViewSet):
+
+class UserViewSet(RetrieveModelMixin,
+                    UpdateModelMixin,
+                    GenericViewSet):
     """
-    User viewset automatically provides `list`, `create`, `retrieve`,
-    `update` and `destroy` actions.
+    User viewset automatically provides `retrieve` and `update` actions.
     """
     queryset = UserModel.objects.all().filter(is_hidden=False)
     pagination_class = LimitOffsetPagination
@@ -86,13 +89,13 @@ class UserViewSet(viewsets.ModelViewSet):
         Instantiates and returns the list of permissions that this view requires.
         """
         if self.action == 'list':
-            permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+            permission_classes = [IsAuthenticatedOrReadOnly]
         elif self.action == 'retrieve' or self.action == 'update':
-            permission_classes = [IsOwnerOrAdmin]
+            permission_classes = [pemissions.IsOwnerOrAdmin]
         elif self.action == 'getStatus':
-            permission_classes = [permissions.IsAuthenticated]
+            permission_classes = [IsAuthenticated]
         else:
-            permission_classes = [permissions.IsAdminUser]
+            permission_classes = [IsAdminUser]
         return [permission() for permission in permission_classes]
 
     @action(detail=False,methods=['GET'],url_name='getStatus',url_path='status')
@@ -134,7 +137,7 @@ class AdminUserViewSet(viewsets.ModelViewSet):
     """
     queryset = UserModel.objects.all()
     pagination_class = LimitOffsetPagination
-    permission_classes = [permissions.IsAdminUser]
+    permission_classes = [IsAdminUser]
     serializer_class = serializers.UserFullSerializer
     
     def update(self,request,*args,**kwargs):

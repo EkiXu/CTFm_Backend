@@ -167,9 +167,14 @@ class AdminChallengeViewSet(viewsets.ModelViewSet):
     `retrieve`,`update` and `destroy` actions.
     """
     queryset = Challenge.objects.all()
-    serializer_class = serializers.FullChallengeSerializer
     pagination_class = LimitOffsetPagination
     permission_classes = [permissions.IsAdminUser]
+
+    def get_serializer_class(self):
+        if self.action == "list":
+            return serializers.ChallengeSerializer
+        else : 
+            return serializers.FullChallengeSerializer
 
     def get_queryset(self):
         """
@@ -185,12 +190,6 @@ class AdminChallengeViewSet(viewsets.ModelViewSet):
                 return Challenge.objects.none()
             queryset = queryset.filter(category=category.id)
         return queryset
-    
-    def get_serializer_class(self):
-        if self.action == "list":
-            return serializers.FullChallengeSerializer
-        else : 
-            return serializers.BaseChallengeSerializer
 
 class CategoryChallengeViewset(ChallengeViewSet):
     def get_queryset(self):
