@@ -8,6 +8,8 @@ from rest_framework.pagination import LimitOffsetPagination
 
 from challenge.models import Challenge,SolutionDetail,ChallengeCategory
 from challenge import serializers
+from challenge import throttles
+from contest.models import Contest
 
 from contest.permissions import IsInContestTimeOrAdminOnly
 
@@ -66,6 +68,13 @@ class ChallengeViewSet(viewsets.ReadOnlyModelViewSet):
             return queryset
         return queryset.filter(is_hidden=False)
     
+    def get_throttles(self):
+        if self.action == "checkFlag":
+            throttle_classes = [throttles.TenPerMinuteUserThrottle]
+        else: 
+            throttle_classes = []
+        return [throttle() for throttle in throttle_classes]
+
     def get_serializer_class(self):
         if self.action == "list":
             return serializers.ChallengeSerializer
@@ -75,6 +84,33 @@ class ChallengeViewSet(viewsets.ReadOnlyModelViewSet):
             return serializers.FlagSerializer
         else : 
             return serializers.ChallengeDetailSerializer
+    def IsAfterContest(self):
+        current_time = timezone.now()
+        try:
+            contest = Contest.objects.first()
+            return current_time > contest.end_time 
+        except (ObjectDoesNotExist,TypeError):
+            return True
+
+    def IsBeforeContest(self):
+        current_time = timezone.now()
+        try:
+            contest = Contest.objects.first()
+            return  current_time < contest.start_time
+        except (ObjectDoesNotExist,TypeError):
+            return True
+    
+    def list(self, request, *args, **kwargs):
+        if self.IsBeforeContest():
+            return Response({"detail":"Contest has not yet started"},status=status.HTTP_423_LOCKED)
+        else:
+            return super().list(request, *args, **kwargs)
+
+    def retrieve(self, request, *args, **kwargs):
+        if self.IsBeforeContest():
+            return Response({"detail":"Contest has not yet started"},status=status.HTTP_423_LOCKED)
+        else:
+            return super().retrieve(request, *args, **kwargs)
 
     def get_permissions(self):
         """
@@ -85,6 +121,11 @@ class ChallengeViewSet(viewsets.ReadOnlyModelViewSet):
 
     @action(detail=True,methods=['POST'],url_name='checkFlag',url_path='_checkFlag')
     def checkFlag(self,request,pk=None,*args,**kwargs):
+        if self.IsBeforeContest():
+            return Response({"detail":"Contest has not yet started"},status=status.HTTP_423_LOCKED)
+        if self.IsAfterContest():
+            return Response({"detail":"Contest is over"},status=status.HTTP_423_LOCKED)
+        
         challenge = self.get_object()
         flag = ""
         try:

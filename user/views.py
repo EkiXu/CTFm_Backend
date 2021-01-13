@@ -1,4 +1,3 @@
-#from django.contrib.auth import get_user_model
 from django.core.exceptions import ObjectDoesNotExist
 from django.contrib import auth
 from django.contrib.auth.hashers import make_password,check_password
@@ -6,10 +5,12 @@ from rest_framework import viewsets
 from rest_framework.pagination import LimitOffsetPagination
 from rest_framework import permissions
 from rest_framework import status
-from rest_framework.decorators import api_view, permission_classes,action
+from rest_framework.decorators import api_view, permission_classes,action, throttle_classes
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
+
 from user import serializers
+from user import throttles
 from user.pemissions import IsOwner, IsOwnerOrAdmin
 
 UserModel = auth.get_user_model()
@@ -45,6 +46,7 @@ def register(request):
 
 @api_view(['POST'])
 @permission_classes([permissions.AllowAny])
+@throttle_classes([throttles.TenPerMinuteUserThrottle])
 def obtainToken(request):
     """
     Login
@@ -97,7 +99,6 @@ class UserViewSet(viewsets.ModelViewSet):
     def getStatus(self,request,*args,**kwargs):
         user = request.user
         return Response({"is_hidden":user.is_hidden,"is_staff":user.is_staff})
-
 
     def update(self, request, *args, **kwargs):
         try:
