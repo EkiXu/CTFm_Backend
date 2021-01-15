@@ -3,3 +3,4 @@ djangorestframework==3.12.2
 drf-nested-routers==0.92.5
 djangorestframework-simplejwt==4.6.0
 django-redis==4.12.1
+hiredis==1.1.0
