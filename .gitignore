@@ -98,9 +98,9 @@ media/
 fabfile.py
 
 # Config
-*.cnf
 *.ini
 *.pid
 *.sock
+settings.py
 
 *.test

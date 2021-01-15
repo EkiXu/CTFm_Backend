@@ -1,6 +1,10 @@
 
+from datetime import datetime
 from django.db.models.aggregates import Count,Sum
 from django.db import models
+from django.db.models.signals import post_delete, post_save
+from django.core.cache import cache
+
 from user.models import BaseUser
 
 # Create your models here.
@@ -50,6 +54,12 @@ class Challenge(models.Model):
         ) + self.initial_points
         return value
 
+def change_challenge_updated_at(sender=None, instance=None, *args, **kwargs):
+    cache.set("challenge_updated_at", datetime.utcnow())
+
+post_save.connect(receiver=change_challenge_updated_at, sender=Challenge)
+post_delete.connect(receiver=change_challenge_updated_at, sender=Challenge)
+
 class ContestUser(BaseUser):
     @property
     def points(self):
@@ -78,3 +88,5 @@ class SolutionDetail(models.Model):
  
     class Meta:
         ordering=['-pub_date']
+    
+

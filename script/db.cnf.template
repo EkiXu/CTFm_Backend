@@ -1,7 +1,0 @@
-[client]
-host = db
-port = 3306
-database = ctfm
-user = ctfm
-password = mysqlpasswd
-default-character-set = utf8mb4

@@ -1,17 +1,22 @@
+from datetime import datetime
 from django.utils import timezone
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models.query import prefetch_related_objects
 from rest_framework import permissions, viewsets ,status
-from rest_framework.decorators import action, permission_classes
+from rest_framework.decorators import action, permission_classes, throttle_classes
 from rest_framework.response import Response
 from rest_framework.pagination import LimitOffsetPagination
+from rest_framework_extensions.cache.decorators import (cache_response)
+from rest_framework_extensions.mixins import NestedViewSetMixin
+from django.core.cache import cache
 
 from challenge.models import Challenge,SolutionDetail,ChallengeCategory
 from challenge import serializers
 from challenge import throttles
-from contest.models import Contest
+from challenge import utils
 
-from contest.permissions import IsInContestTimeOrAdminOnly
+from contest.utils import contest_began_or_forbbiden,in_contest_time_or_forbbiden
+from contest.models import Contest
 
 class ChallengeCategoryViewSet(viewsets.ReadOnlyModelViewSet):
     """
@@ -20,17 +25,17 @@ class ChallengeCategoryViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = ChallengeCategory.objects.all()
     serializer_class = serializers.ChallengeCategorySerializer
     pagination_class = LimitOffsetPagination
+    permission_classes = [permissions.IsAuthenticated]
 
-    def get_permissions(self):
-        """
-        Instantiates and returns the list of permissions that this view requires.
-        """
-        if self.action == 'list' or self.action == 'retrieve':
-            permission_classes = [IsInContestTimeOrAdminOnly]
-        else:
-            permission_classes = [permissions.IsAuthenticated,IsInContestTimeOrAdminOnly]
-
-        return [permission() for permission in permission_classes]
+    @contest_began_or_forbbiden
+    @cache_response(key_func=utils.ChallengeCategoryListKeyConstructor())
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+    
+    @contest_began_or_forbbiden
+    @cache_response(key_func=utils.ChallengeCategoryObjectKeyConstructor())
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
     
 class AdminChallengeCategoryViewSet(viewsets.ModelViewSet):
     """
@@ -41,6 +46,7 @@ class AdminChallengeCategoryViewSet(viewsets.ModelViewSet):
     serializer_class = serializers.FullChallengeCategorySerializer
     pagination_class = LimitOffsetPagination
     permission_classes = [permissions.IsAdminUser]
+
 
 class ChallengeViewSet(viewsets.ReadOnlyModelViewSet):
     """
@@ -84,33 +90,16 @@ class ChallengeViewSet(viewsets.ReadOnlyModelViewSet):
             return serializers.FlagSerializer
         else : 
             return serializers.ChallengeDetailSerializer
-    def IsAfterContest(self):
-        current_time = timezone.now()
-        try:
-            contest = Contest.objects.first()
-            return current_time > contest.end_time 
-        except (ObjectDoesNotExist,TypeError):
-            return True
-
-    def IsBeforeContest(self):
-        current_time = timezone.now()
-        try:
-            contest = Contest.objects.first()
-            return  current_time < contest.start_time
-        except (ObjectDoesNotExist,TypeError):
-            return True
     
+    @contest_began_or_forbbiden
+    @cache_response(key_func=utils.ChallengeListKeyConstructor())
     def list(self, request, *args, **kwargs):
-        if self.IsBeforeContest():
-            return Response({"detail":"Contest has not yet started"},status=status.HTTP_423_LOCKED)
-        else:
-            return super().list(request, *args, **kwargs)
-
+        return super().list(request, *args, **kwargs)
+    
+    @contest_began_or_forbbiden
+    @cache_response(key_func=utils.ChallengeObjectKeyConstructor())
     def retrieve(self, request, *args, **kwargs):
-        if self.IsBeforeContest():
-            return Response({"detail":"Contest has not yet started"},status=status.HTTP_423_LOCKED)
-        else:
-            return super().retrieve(request, *args, **kwargs)
+        return super().retrieve(request, *args, **kwargs)
 
     def get_permissions(self):
         """
@@ -119,13 +108,10 @@ class ChallengeViewSet(viewsets.ReadOnlyModelViewSet):
         permission_classes = [permissions.IsAuthenticated]
         return [permission() for permission in permission_classes]
 
+
     @action(detail=True,methods=['POST'],url_name='checkFlag',url_path='_checkFlag')
+    @in_contest_time_or_forbbiden
     def checkFlag(self,request,pk=None,*args,**kwargs):
-        if self.IsBeforeContest():
-            return Response({"detail":"Contest has not yet started"},status=status.HTTP_423_LOCKED)
-        if self.IsAfterContest():
-            return Response({"detail":"Contest is over"},status=status.HTTP_423_LOCKED)
-        
         challenge = self.get_object()
         flag = ""
         try:
@@ -134,28 +120,20 @@ class ChallengeViewSet(viewsets.ReadOnlyModelViewSet):
         except KeyError:
             return Response({'detail': 'Flag Field is NULL.'},status=status.HTTP_400_BAD_REQUEST)
         except ObjectDoesNotExist:
-            if challenge.flag == flag:
-                user = request.user
-                detail = SolutionDetail(challenge = challenge,user = user,solved = True)
-                detail.save()
-                user.last_point_at = timezone.now()
-                user.save(update_fields=["last_point_at"])
-                return Response({'detail': 'Solved Successfully'})
-            else:
-                user = request.user
-                detail = SolutionDetail(challenge = challenge,user = user)
-                detail.save()
-                return Response({'detail': 'Wrong Flag'},status=status.HTTP_400_BAD_REQUEST)
-        detail.times += 1
+            user = request.user
+            detail = SolutionDetail(challenge = challenge,user = user,solved = False)
+                
         if detail.solved == True:
             return Response({'detail': 'Already Solved'},status=status.HTTP_400_BAD_REQUEST)
         else:
+            detail.times += 1
             if challenge.flag == flag:
                 user = request.user
                 detail.solved = True
                 detail.save()
                 user.last_point_at = timezone.now()
                 user.save(update_fields=["last_point_at"])
+                cache.set("rank_updated_at", datetime.utcnow())
                 return Response({'detail': 'Solved Successfully'})
             else:
                 detail.save()
@@ -191,6 +169,5 @@ class AdminChallengeViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(category=category.id)
         return queryset
 
-class CategoryChallengeViewset(ChallengeViewSet):
-    def get_queryset(self):
-        return Challenge.objects.filter(category=self.kwargs['category_pk']).filter(is_hidden=False).order_by('id')
+class CategoryChallengeViewset(NestedViewSetMixin,ChallengeViewSet):
+    pass
