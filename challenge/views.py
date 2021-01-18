@@ -1,14 +1,14 @@
 from datetime import datetime
 from django.utils import timezone
 from django.core.exceptions import ObjectDoesNotExist
-from django.db.models.query import prefetch_related_objects
+from django.core.cache import cache
 from rest_framework import permissions, viewsets ,status
-from rest_framework.decorators import action, permission_classes, throttle_classes
+from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.pagination import LimitOffsetPagination
 from rest_framework_extensions.cache.decorators import (cache_response)
 from rest_framework_extensions.mixins import NestedViewSetMixin
-from django.core.cache import cache
+
 
 from challenge.models import Challenge,SolutionDetail,ChallengeCategory
 from challenge import serializers
@@ -16,7 +16,6 @@ from challenge import throttles
 from challenge import utils
 
 from contest.utils import contest_began_or_forbbiden,in_contest_time_or_forbbiden
-from contest.models import Contest
 
 class ChallengeCategoryViewSet(viewsets.ReadOnlyModelViewSet):
     """

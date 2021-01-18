@@ -5,6 +5,7 @@ from django.db.models.signals import post_delete, post_save
 
 # Create your models here.
 
+
 class Notification(models.Model):
     pub_date = models.DateTimeField(auto_now=True)
     

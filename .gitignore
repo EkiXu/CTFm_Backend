@@ -94,6 +94,7 @@ database/
 whoosh_index/
 media/
 .idea/
+.vscode/
 *.sqlite3
 fabfile.py
 

@@ -43,7 +43,7 @@ class Challenge(models.Model):
     def solved_amount(self):
         amount = SolutionDetail.objects.filter(challenge = self).filter(solved=True).count()
         return amount
-    
+
     @property
     def points(self):
         if self.decay == 0:
@@ -73,6 +73,12 @@ class ContestUser(BaseUser):
     def solved_amount(self):
         amount = SolutionDetail.objects.filter(user = self).filter(solved=True).count()
         return amount
+
+    @property
+    def solved_challenges(self):
+        challenges = SolutionDetail.objects.filter(user = self).filter(solved=True).values("challenge","pub_date")
+        return challenges
+
     @property
     def attempt_amount(self):
         amount = SolutionDetail.objects.filter(user = self).aggregate(nums=Sum('times'))

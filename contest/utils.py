@@ -26,6 +26,12 @@ class UpdatedAtKeyBit(KeyBitBase):
 class RankUpdatedAtKeyBit(UpdatedAtKeyBit):
     key = "rank_updated_at"
 
+class ContestUpdatedAtKeyBit(UpdatedAtKeyBit):
+    key = "contest_updated_at"
+
+class ContestKeyConstructor(DefaultKeyConstructor):
+    updated_at = ContestUpdatedAtKeyBit()
+
 class ScoreboardKeyConstructor(DefaultKeyConstructor):
     pagination = PaginationKeyBit()
     updated_at = RankUpdatedAtKeyBit()

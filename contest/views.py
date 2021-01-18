@@ -1,22 +1,17 @@
 from heapq import nlargest
 from django.contrib.auth import get_user_model
-from django.db.models import query
-from django.shortcuts import render
 from rest_framework.generics import ListAPIView
-from rest_framework.pagination import LimitOffsetPagination
-from contest import permissions
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.permissions import IsAdminUser,IsAuthenticated
-from rest_framework_extensions.cache.decorators import (
-    cache_response
-)
+from rest_framework.permissions import IsAdminUser
+from rest_framework_extensions.cache.decorators import cache_response
 
-from challenge.models import SolutionDetail
-from user.serializers import UserSerializer
+from challenge.models import Challenge, SolutionDetail
+from challenge.serializers import TinyChallengeSerializer
 
-from contest.models import Contest
+from contest import paginations
+from contest import models
 from contest import serializers
 from contest import utils
 
@@ -26,9 +21,9 @@ class ContestManager(APIView):
     """
     Get Contest Detail And Update Contest Detail
     """
-
+    @cache_response(60*60*24,key_func=utils.ContestKeyConstructor())
     def get(self, request, format=None):
-        contest = Contest.objects.all().first()
+        contest = models.Contest.objects.all().first()
         serializer = serializers.ContestSerializer(contest)
         return Response(serializer.data)
 
@@ -40,12 +35,12 @@ class AdminContestManager(APIView):
     permission_classes = [IsAdminUser]
     
     def get(self, request, format=None):
-        contest = Contest.objects.all().first()
+        contest = models.Contest.objects.all().first()
         serializer = serializers.ContestSerializer(contest)
         return Response(serializer.data)
 
     def put(self, request, format=None):
-        contest = Contest.objects.all().first()
+        contest = models.Contest.objects.all().first()
         serializer = serializers.ContestSerializer(contest, data=request.data)
         if serializer.is_valid():
             serializer.save()
@@ -67,12 +62,22 @@ class TopTenTrendView(APIView):
             rows.append({"id":user.id,"nickname":user.nickname,"current_points":cur_points,"records":data})
         return Response({"rows":rows},status=status.HTTP_200_OK)
 
-class ScoreBoardView(ListAPIView):
+class ScoreboardView(ListAPIView):
+    serializer_class = serializers.ScoreboardSerializer
+    pagination_class = paginations.ScoreboardPagination
     queryset = sorted(UserModel.objects.all().filter(is_hidden=False), key=lambda t: t.points,reverse=True)
-    serializer_class = UserSerializer
-    pagination_class = LimitOffsetPagination
 
     @cache_response(key_func=utils.ScoreboardKeyConstructor())
     def list(self, request, *args, **kwargs):
-        return super().list(request, *args, **kwargs)
+        playerQueryset = sorted(UserModel.objects.all().filter(is_hidden=False), key=lambda t: t.points,reverse=True)
+        challengeQueryset = Challenge.objects.all().filter(is_hidden=False)
+        challengeSerializer = TinyChallengeSerializer(challengeQueryset, many=True)
+        
+        page = self.paginate_queryset(playerQueryset)
+        if page is not None:
+            serializer = serializers.ScoreboardSerializer(page, many=True)
+            return self.paginator.get_paginated_response(serializer.data,challengeSerializer.data)
+
+        playerSerializer = serializers.ScoreboardSerializer(playerQueryset, many=True)
+        return Response({"challenges":challengeSerializer.data,"players":playerSerializer.data})
     

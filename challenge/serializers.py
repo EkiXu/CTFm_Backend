@@ -35,6 +35,17 @@ class FullChallengeSerializer(serializers.ModelSerializer):
             "points",
         ]
 
+class TinyChallengeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Challenge
+        fields = ['id', 'title','points','solved_amount','attempt_amount']
+        read_only_fields = [
+            "id",
+            "solved_amount",
+            "attempt_amount",
+            "points"
+        ]
+
 class BaseChallengeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Challenge
