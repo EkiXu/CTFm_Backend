@@ -1,11 +1,15 @@
 from rest_framework import serializers
-from rest_framework.relations import PrimaryKeyRelatedField
 from contest.models import Contest
 from django.contrib.auth import get_user_model
-from challenge.models import SolutionDetail
-
 
 class ContestSerializer(serializers.ModelSerializer):
+    def validate(self, data):
+        """
+        Check that start is before finish.
+        """
+        if data['start_time'] > data['end_time']:
+            raise serializers.ValidationError("end_time must occur after start_time")
+        return data
     class Meta:
         model = Contest
         fields = "__all__"
@@ -24,10 +28,3 @@ class ScoreboardSerializer(serializers.ModelSerializer):
             "last_point_at"
         ]
         ordering = ['points']
-    '''
-    def get_solved_challenges(self, obj):
-        res = []
-        SolutionDetail.objects.filter().filter(solved=True)
-        return res
-        
-    '''

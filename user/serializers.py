@@ -1,10 +1,8 @@
 from django.contrib.auth import get_user_model
-from django.core.validators import MaxLengthValidator
-from rest_framework.validators import UniqueValidator
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-from challenge.models import SolutionDetail,Challenge
-from django.db.models.functions import Rank
+from drf_recaptcha.fields import ReCaptchaV2Field
+
 
 UserModel = get_user_model()
 
@@ -55,7 +53,12 @@ class UserDetailUpdateSerializer(serializers.ModelSerializer):
         ]
 
 class RegisterSerializer(serializers.ModelSerializer):
+    recaptcha = ReCaptchaV2Field()
     password = serializers.CharField(write_only=True)
+
+    def validate(self, attrs):
+        attrs.pop("recaptcha")
+        return super().validate(attrs)
 
     def create(self, validated_data):
         user = UserModel.objects.create(
@@ -70,7 +73,7 @@ class RegisterSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = UserModel
-        fields = ("username","email","nickname",'password')
+        fields = ("username","email","nickname",'password','recaptcha')
         required = (
             'username',
             'email',

@@ -33,11 +33,12 @@ def logout(request):
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
+@throttle_classes([throttles.TenPerMinuteUserThrottle])
 def register(request):
     """
     Register
     """
-    serializer = serializers.RegisterSerializer(data=request.data)
+    serializer = serializers.RegisterSerializer(data=request.data,context={"request": request})
     if serializer.is_valid():
         serializer.save()
         return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -72,9 +73,6 @@ class UserViewSet(RetrieveModelMixin,
     """
     queryset = UserModel.objects.all().filter(is_hidden=False)
     pagination_class = LimitOffsetPagination
-
-    def destroy(self, request, *args, **kwargs):
-        return Response({"detail":"Bad Request!"},status=status.HTTP_400_BAD_REQUEST)
     
     def get_serializer_class(self):
         if self.action == "retrieve":

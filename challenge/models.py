@@ -11,8 +11,14 @@ from user.models import BaseUser
 class ChallengeCategory(models.Model):
     name = models.CharField(max_length=64,unique=True)
     description = models.CharField(max_length=512)
-    icon = models.CharField(max_length=256,default="")
+    icon = models.CharField(max_length=64,default="")
     updated_at = models.DateTimeField(auto_now=True)
+
+def change_challenge_category_updated_at(sender=None, instance=None, *args, **kwargs):
+    cache.set("challenge_category_updated_at", datetime.utcnow())
+
+post_save.connect(receiver=change_challenge_category_updated_at, sender=ChallengeCategory)
+post_delete.connect(receiver=change_challenge_category_updated_at, sender=ChallengeCategory)
 
 class Challenge(models.Model):
     pub_date = models.DateTimeField(auto_now=True)
