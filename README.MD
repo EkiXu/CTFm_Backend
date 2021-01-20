@@ -24,6 +24,7 @@ uwsgi --stop script/uwsgi.pid
 - [x] Scoreboard & TrendChart
 - [x] ChangePassword
 - [X] Notification Manage
+- [ ] Realtime Notification
 - [x] Dynamic Challenge Score Support
 - [ ] Dynamic Docker Challenge Support
 - [ ] Team Support
