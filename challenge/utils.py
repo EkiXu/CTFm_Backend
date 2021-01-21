@@ -5,6 +5,7 @@ from rest_framework_extensions.key_constructor.bits import (
     ListSqlQueryKeyBit,
     PaginationKeyBit,
     RetrieveSqlQueryKeyBit,
+    UserKeyBit,
 )
 from rest_framework_extensions.key_constructor.constructors import DefaultKeyConstructor
 
@@ -27,6 +28,7 @@ class ChallengeUpdatedAtKeyBit(UpdatedAtKeyBit):
 class ChallengeListKeyConstructor(DefaultKeyConstructor):
     list_sql = ListSqlQueryKeyBit()
     pagination = PaginationKeyBit()
+    user = UserKeyBit()
     updated_at = ChallengeUpdatedAtKeyBit()
 
 class ChallengeObjectKeyConstructor(DefaultKeyConstructor):
