@@ -65,7 +65,7 @@ class TopTenTrendView(APIView):
 class ScoreboardView(ListAPIView):
     serializer_class = serializers.ScoreboardSerializer
     pagination_class = paginations.ScoreboardPagination
-    queryset = sorted(UserModel.objects.all().filter(is_hidden=False), key=lambda t: t.points,reverse=True)
+    queryset = UserModel.objects.all().filter(is_hidden=False)
 
     @cache_response(key_func=utils.ScoreboardKeyConstructor())
     def list(self, request, *args, **kwargs):
