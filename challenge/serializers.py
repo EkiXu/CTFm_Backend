@@ -83,7 +83,7 @@ class ChallengeSerializer(BaseChallengeSerializer):
 class ChallengeDetailSerializer(ChallengeSerializer):
     class Meta:
         model = Challenge
-        fields = ['id', 'title', 'summary','content','author','solved_amount','attempt_amount','solved','points']
+        fields = ['id', 'title','content','author','attachment_url','have_dynamic_container','solved_amount','attempt_amount','solved','points']
         read_only_fields = [
             "id",
             "solved_amount",

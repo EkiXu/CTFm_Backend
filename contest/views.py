@@ -53,7 +53,7 @@ class TopTenTrendView(APIView):
         users = nlargest(10,UserModel.objects.all(),key=lambda t: t.points)
         rows = []
         for user in users:
-            history = SolutionDetail.objects.filter(user = user).order_by('pub_date')
+            history = SolutionDetail.objects.filter(user = user).filter(solved=True).order_by('pub_date')
             cur_points = 0
             data = []
             for record in history:

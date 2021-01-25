@@ -33,7 +33,10 @@ class Challenge(models.Model):
     decay = models.BigIntegerField(default=0)
 
     is_hidden = models.BooleanField(default=True)
+    
+    have_dynamic_container = models.BooleanField(default=False)
 
+    attachment_url = models.CharField(max_length=512,null=True)
     flag = models.CharField(max_length=512,default="")
 
     category = models.ForeignKey(
@@ -58,6 +61,8 @@ class Challenge(models.Model):
             ((self.minimum_points - self.initial_points) / (self.decay ** 2))
             * (self.solved_amount ** 2)
         ) + self.initial_points
+        if(value < self.minimum_points):
+            value = self.minimum_points 
         return value
 
 def change_challenge_updated_at(sender=None, instance=None, *args, **kwargs):
@@ -102,3 +107,21 @@ class SolutionDetail(models.Model):
         ordering=['-pub_date']
     
 
+class ChallengeDocker():
+    challenge = models.ForeignKey(
+    Challenge,related_name='docker',on_delete=models.CASCADE)
+    TCP = 1
+    HTTP = 2
+    PROTOCOL_CHOICES = [
+        (TCP, 'TCP'),
+        (HTTP, 'HTTP'),
+    ]
+    protocol = models.IntegerField(
+        max_length=2,
+        choices=PROTOCOL_CHOICES,
+        default=TCP,
+    )
+    image = models.CharField(max_length=512)
+    port = models.IntegerField()
+    memory_limit = models.CharField(max_length=64, default="128m")
+    cpu_limit = models.FloatField(default=0.5)
