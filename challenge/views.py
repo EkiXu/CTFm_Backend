@@ -133,7 +133,7 @@ class ChallengeViewSet(viewsets.ReadOnlyModelViewSet):
                 user.last_point_at = timezone.now()
                 user.save(update_fields=["last_point_at"])
                 cache.set("rank_updated_at", datetime.utcnow())
-                cache.set("challenge_updated_at", datetime.utcnow())
+                cache.set("challenge_points_updated_at", datetime.utcnow())
                 return Response({'detail': 'Solved Successfully'})
             else:
                 detail.save()

@@ -25,11 +25,15 @@ class UpdatedAtKeyBit(KeyBitBase):
 class ChallengeUpdatedAtKeyBit(UpdatedAtKeyBit):
     key = "challenge_updated_at"
 
+class ChallengePointsUpdatedAtKeyBit(UpdatedAtKeyBit):
+    key = "challenge_points_updated_at"
+
 class ChallengeListKeyConstructor(DefaultKeyConstructor):
     list_sql = ListSqlQueryKeyBit()
     pagination = PaginationKeyBit()
     user = UserKeyBit()
     updated_at = ChallengeUpdatedAtKeyBit()
+    points_updated_at = ChallengePointsUpdatedAtKeyBit()
 
 class ChallengeObjectKeyConstructor(DefaultKeyConstructor):
     retrieve_sql = RetrieveSqlQueryKeyBit()

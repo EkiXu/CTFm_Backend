@@ -71,6 +71,9 @@ def change_challenge_updated_at(sender=None, instance=None, *args, **kwargs):
 post_save.connect(receiver=change_challenge_updated_at, sender=Challenge)
 post_delete.connect(receiver=change_challenge_updated_at, sender=Challenge)
 
+post_save.connect(receiver=change_challenge_category_updated_at, sender=Challenge)
+post_delete.connect(receiver=change_challenge_category_updated_at, sender=Challenge)
+
 class ContestUser(BaseUser):
     @property
     def points(self):
