@@ -75,17 +75,20 @@ post_save.connect(receiver=change_challenge_category_updated_at, sender=Challeng
 post_delete.connect(receiver=change_challenge_category_updated_at, sender=Challenge)
 
 class ContestUser(BaseUser):
+    
+    attempted_challenges = models.ManyToManyField(Challenge, through='SolutionDetail')
+
     @property
     def points(self):
         value = 0
-        all_solved_challenge = SolutionDetail.objects.filter(user=self).filter(solved=True)
+        all_solved_challenge = SolutionDetail.objects.filter(user=self).filter(solved=True).filter(challenge__is_hidden=False)
         for solved_challenge in all_solved_challenge:
             value = value+ solved_challenge.challenge.points
         return value
 
     @property
     def solved_amount(self):
-        amount = SolutionDetail.objects.filter(user = self).filter(solved=True).count()
+        amount = SolutionDetail.objects.filter(user = self).filter(solved=True).filter(challenge__is_hidden=False).count()
         return amount
 
     @property
