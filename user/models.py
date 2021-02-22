@@ -6,3 +6,4 @@ class BaseUser(AbstractUser):
     nickname = models.CharField(max_length=50, blank=True)
     last_point_at = models.DateTimeField(null=True, blank=True, default=None)
     is_hidden = models.BooleanField(default=False)
+    is_verified = models.BooleanField(default=False)

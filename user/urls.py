@@ -21,8 +21,13 @@ router.register(r'admin/user', views.AdminUserViewSet)
 
 urlpatterns = [
     path('auth/register/', views.register),
-    path('auth/obtainToken/', views.obtainToken,name="token_obtain"),
-    path('auth/refreshToken/', TokenRefreshView.as_view(),name="token_refresh"),
-    path('auth/verifyToken/',TokenVerifyView.as_view(), name='token_verify'),
+    path('auth/obtain_token/', views.obtainToken,name="token_obtain"),
+    path('auth/refresh_token/', TokenRefreshView.as_view(),name="token_refresh"),
+    path('auth/verify_token/',TokenVerifyView.as_view(), name='token_verify'),
+    path('auth/reset_password_email/',views.resetPasswordRequest, name='reset_password_email'),
+    url(r'^auth/activate/(?P<user_id>\d+)/(?P<token>[0-9A-Za-z]{1,13}-[0-9A-Za-z]{1,32})/$',
+        views.activate, name='activate'),
+    url(r'^auth/reset_password/(?P<user_id>\d+)/(?P<token>[0-9A-Za-z]{1,13}-[0-9A-Za-z]{1,32})/$',
+        views.resetPassword, name='activate'),
     url(r'', include(router.urls)),
 ]

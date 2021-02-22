@@ -1,39 +1,45 @@
 from django.contrib.auth import get_user_model
+from django.contrib.sites.shortcuts import get_current_site
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from drf_recaptcha.fields import ReCaptchaV2Field
-
+from user.utils import sendRegisterValidationEmail
+from django.conf import settings
 
 UserModel = get_user_model()
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserModel
-        fields = ("id","nickname","solved_amount","points","last_point_at")
+        fields = ("id","nickname","is_verified","solved_amount","points","last_point_at")
         read_only_field = [
             "id",
             "nickname",
             "solved_amount",
+            "email",
             "points",
-            "last_point_at"
+            "last_point_at",
+            "is_verified",
         ]
         ordering = ['points']
 
 class UserDetailSerializer(UserSerializer):
     class Meta:
         model = UserModel
-        fields = ("id","email","username","nickname","solved_amount","points")
+        fields = ("id","email","username","nickname","is_verified","solved_amount","points")
         read_only_fields = [
             "id",
             "username",
+            "email",
             "points",
-            "solved_amount"
+            "solved_amount",
+            "is_verified",
         ]
 
 class UserFullSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserModel
-        fields =  ("id","email","username","nickname","solved_amount","points","is_hidden","is_staff")
+        fields =  ("id","email","username","nickname","solved_amount","points","is_hidden","is_staff","is_verified")
         read_only_fields = [
             "id",
             "points",
@@ -52,6 +58,14 @@ class UserDetailUpdateSerializer(serializers.ModelSerializer):
             "username",
         ]
 
+class EmailSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+class UserEmailSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserModel
+        fields = ("email",)
+
 class RegisterSerializer(serializers.ModelSerializer):
     recaptcha = ReCaptchaV2Field()
     password = serializers.CharField(write_only=True)
@@ -61,15 +75,28 @@ class RegisterSerializer(serializers.ModelSerializer):
         return super().validate(attrs)
 
     def create(self, validated_data):
-        user = UserModel.objects.create(
-            username = validated_data['username'],
-            email = validated_data['email'],
-            nickname = validated_data['nickname'],
-        )
-        user.set_password(validated_data['password'])
-        user.save()
-
-        return user
+        if settings.ENABLE_EMAIL_VALIDATION == False:
+            user = UserModel.objects.create(
+                username = validated_data['username'],
+                email = validated_data['email'],
+                nickname = validated_data['nickname'],
+            )
+            user.set_password(validated_data['password'])
+            user.save()
+            return user
+        else:
+            user = UserModel.objects.create(
+                username = validated_data['username'],
+                email = validated_data['email'],
+                nickname = validated_data['nickname'],
+                is_verified = False
+            )
+            user.set_password(validated_data['password'])
+            
+            current_site = get_current_site(self.context['request'])
+            sendRegisterValidationEmail(user,current_site=current_site)
+            user.save()
+            return user
 
     class Meta:
         model = UserModel
@@ -81,6 +108,9 @@ class RegisterSerializer(serializers.ModelSerializer):
             'password',
         )
 
+class ResetPasswordSerializer(serializers.Serializer):
+    password = serializers.CharField()
+
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod
     def get_token(cls, user):
@@ -91,5 +121,6 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
         token['nickname'] = user.nickname
         token['is_staff'] = user.is_staff
         token['is_hidden'] = user.is_hidden
+        token['is_verified'] = user.is_verified
 
         return token

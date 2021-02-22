@@ -1,6 +1,10 @@
+from functools import partial
+from django.conf import settings
+from django.contrib.sites.shortcuts import get_current_site
 from django.core.exceptions import ObjectDoesNotExist
 from django.contrib import auth
 from django.contrib.auth.hashers import make_password,check_password
+from django.utils.encoding import force_text
 from rest_framework import viewsets
 from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.permissions import IsAuthenticated,AllowAny,IsAdminUser,IsAuthenticatedOrReadOnly
@@ -14,6 +18,7 @@ from rest_framework.viewsets import GenericViewSet
 from user import serializers
 from user import throttles
 from user import pemissions
+from user import utils
 
 UserModel = auth.get_user_model()
 
@@ -40,10 +45,33 @@ def register(request):
     """
     serializer = serializers.RegisterSerializer(data=request.data,context={"request": request})
     if serializer.is_valid():
-        serializer.save()
+        try:
+            serializer.save()
+        except:
+            Response({"detail":"check your server config."},status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+@api_view(['GET'])
+@permission_classes([AllowAny])
+@throttle_classes([throttles.TenPerMinuteUserThrottle])
+def activate(request,user_id,token):
+    """
+    Activate
+    """
+    try:
+        user = UserModel.objects.get(id=user_id)
+    except(TypeError, ValueError, OverflowError, UserModel.DoesNotExist):
+        user = None
+    if user is not None and user.is_verified:
+        return Response({"detail":"Already Verified."},status=status.HTTP_208_ALREADY_REPORTED)
+    if user is not None and utils.account_activation_token.check_token(user, token):
+        user.is_verified = True
+        user.save()
+        refresh = serializers.MyTokenObtainPairSerializer.get_token(user)
+        return Response({"refresh":str(refresh),"access": str(refresh.access_token)})
+    else:
+        return Response(status=status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(['POST'])
@@ -65,6 +93,56 @@ def obtainToken(request):
     return Response({"refresh":str(refresh),"access": str(refresh.access_token)})
 
 
+@api_view(['POST'])
+@permission_classes([AllowAny])
+@throttle_classes([throttles.TenPerMinuteUserThrottle])
+def resetPasswordRequest(request):
+    """
+    Send ResetPassword Email
+    """
+    serializer = serializers.EmailSerializer(data=request.data)
+    email = ""
+    if serializer.is_valid():
+        email = serializer.data['email']
+    else:
+        return Response({"detail":"Invalid Email Address"},status=status.HTTP_400_BAD_REQUEST)
+    
+    try:
+        user = UserModel.objects.get(email = email)
+    except(TypeError, ValueError, OverflowError, UserModel.DoesNotExist):
+        user = None
+
+    if user == None:
+        return Response({"detail":"Invalid Email Address"},status=status.HTTP_400_BAD_REQUEST)
+    current_site = get_current_site(request)
+    utils.sendResetPasswordmail(user,current_site=current_site)
+    return Response({"detail":"Reset Password Email Sent.Please Check Your Mailbox."},status=status.HTTP_202_ACCEPTED)
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+@throttle_classes([throttles.TenPerMinuteUserThrottle])
+def resetPassword(request,user_id,token):
+    """
+    ResetPassword
+    """
+    try:
+        user = UserModel.objects.get(id=user_id)
+    except(TypeError, ValueError, OverflowError, UserModel.DoesNotExist):
+        user = None
+    if user is not None and not user.is_verified:
+        return Response({"detail":"Invalid User"},status=status.HTTP_400_BAD_REQUEST)
+
+    if user is not None and utils.account_activation_token.check_token(user, token):
+        serializer = serializers.ResetPasswordSerializer(data=request.data)
+        if serializer.is_valid():
+            user.set_password(serializer.data['password'])
+            user.save()
+            return Response({"detail":"Password Reset Successful!"},status=status.HTTP_200_OK)
+        else:
+            return Response({"detail":"Invalid Password."}, status=status.HTTP_400_BAD_REQUEST)
+    else:
+        return Response({"detail":"Invalid Request"},status=status.HTTP_400_BAD_REQUEST)
+
 class UserViewSet(RetrieveModelMixin,
                     UpdateModelMixin,
                     GenericViewSet):
@@ -74,11 +152,20 @@ class UserViewSet(RetrieveModelMixin,
     queryset = UserModel.objects.all().filter(is_hidden=False)
     pagination_class = LimitOffsetPagination
     
+    def get_throttles(self):
+        if self.action == "verifyEmail":
+            throttle_classes = [throttles.TenPerMinuteUserThrottle]
+        else: 
+            throttle_classes = []
+        return [throttle() for throttle in throttle_classes]
+
     def get_serializer_class(self):
         if self.action == "retrieve":
             return serializers.UserDetailSerializer
         elif self.action == 'update':
             return serializers.UserDetailUpdateSerializer
+        elif self.action == 'sendVerifyEmail':
+            return serializers.UserEmailSerializer
         else : 
             return serializers.UserSerializer
 
@@ -86,11 +173,9 @@ class UserViewSet(RetrieveModelMixin,
         """
         Instantiates and returns the list of permissions that this view requires.
         """
-        if self.action == 'list':
-            permission_classes = [IsAuthenticatedOrReadOnly]
-        elif self.action == 'retrieve' or self.action == 'update':
+        if self.action == 'retrieve' or self.action == 'update':
             permission_classes = [pemissions.IsOwnerOrAdmin]
-        elif self.action == 'getStatus':
+        elif self.action == 'getStatus' or self.action == 'verifyEmail':
             permission_classes = [IsAuthenticated]
         else:
             permission_classes = [IsAdminUser]
@@ -101,6 +186,20 @@ class UserViewSet(RetrieveModelMixin,
         user = request.user
         return Response({"is_hidden":user.is_hidden,"is_staff":user.is_staff})
 
+    @action(detail=False,methods=['POST'],url_name='sendVerifyEmail',url_path='send_verify_email')
+    def sendVerifyEmail(self,request,*args,**kwargs):
+        user = request.user
+        if user.is_verified:
+            return Response({"detail":"Already Verified."},status=status.HTTP_208_ALREADY_REPORTED)
+        serializer = self.get_serializer(user,data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            current_site = get_current_site(request)
+            utils.sendRegisterValidationEmail(user,current_site=current_site)
+            return Response({"detail":"Email Sent."})
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
     def update(self, request, *args, **kwargs):
         try:
             username = request.user.username
@@ -110,9 +209,12 @@ class UserViewSet(RetrieveModelMixin,
         
         user = auth.authenticate(username=username, password=password)
         
-        if user is None or not user.is_active:
+        if user is None:
             return Response({"detail":"Wrong Password"}, status=status.HTTP_400_BAD_REQUEST)
         
+        #if not user.is_verified:
+        #    return Response({"detail":"Please Verify your email first."}, status=status.HTTP_400_BAD_REQUEST)
+
         new_password = request.data.get('new_password',None)
 
         if new_password:

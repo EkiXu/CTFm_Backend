@@ -2,9 +2,10 @@ from datetime import datetime
 from django.utils import timezone
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.cache import cache
-from rest_framework import permissions, viewsets ,status
+from rest_framework import viewsets ,status
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.permissions import IsAdminUser
 from rest_framework.pagination import LimitOffsetPagination
 from rest_framework_extensions.cache.decorators import (cache_response)
 from rest_framework_extensions.mixins import NestedViewSetMixin
@@ -14,6 +15,7 @@ from challenge.models import Challenge,SolutionDetail,ChallengeCategory
 from challenge import serializers
 from challenge import throttles
 from challenge import utils
+from challenge import permissions
 
 from contest.utils import contest_began_or_forbbiden,in_contest_time_or_forbbiden
 
@@ -24,7 +26,7 @@ class ChallengeCategoryViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = ChallengeCategory.objects.all()
     serializer_class = serializers.ChallengeCategorySerializer
     pagination_class = LimitOffsetPagination
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsVerified]
 
     @contest_began_or_forbbiden
     @cache_response(key_func=utils.ChallengeCategoryListKeyConstructor())
@@ -44,7 +46,7 @@ class AdminChallengeCategoryViewSet(viewsets.ModelViewSet):
     queryset = ChallengeCategory.objects.all()
     serializer_class = serializers.FullChallengeCategorySerializer
     pagination_class = LimitOffsetPagination
-    permission_classes = [permissions.IsAdminUser]
+    permission_classes = [IsAdminUser]
 
 
 class ChallengeViewSet(viewsets.ReadOnlyModelViewSet):
@@ -104,7 +106,7 @@ class ChallengeViewSet(viewsets.ReadOnlyModelViewSet):
         """
         Instantiates and returns the list of permissions that this view requires.
         """
-        permission_classes = [permissions.IsAuthenticated]
+        permission_classes = [permissions.IsVerified]
         return [permission() for permission in permission_classes]
 
 
@@ -146,7 +148,7 @@ class AdminChallengeViewSet(viewsets.ModelViewSet):
     """
     queryset = Challenge.objects.all()
     pagination_class = LimitOffsetPagination
-    permission_classes = [permissions.IsAdminUser]
+    permission_classes = [IsAdminUser]
 
     def get_serializer_class(self):
         if self.action == "list":

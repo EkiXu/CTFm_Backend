@@ -8,3 +8,5 @@ mysqlclient
 channels
 channels_redis
 drf_recaptcha
+tencentcloud-sdk-python
+six
