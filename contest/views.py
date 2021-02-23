@@ -1,5 +1,9 @@
 from heapq import nlargest
+
 from django.contrib.auth import get_user_model
+from django.db.models import Q, query
+from django.conf import settings
+
 from rest_framework.generics import ListAPIView
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -23,7 +27,7 @@ class ContestManager(APIView):
     """
     @cache_response(60*60*24,key_func=utils.ContestKeyConstructor())
     def get(self, request, format=None):
-        contest = models.Contest.objects.all().first()
+        contest = models.Contest.objects.get(pk=1)
         serializer = serializers.ContestSerializer(contest)
         return Response(serializer.data)
 
@@ -48,9 +52,14 @@ class AdminContestManager(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class TopTenTrendView(APIView):
+    queryset = UserModel.objects.all()
+    def get_queryset(self):
+        query = self.queryset.all()
+        return query
+
     @cache_response(key_func=utils.TopTenTrendKeyConstructor())
     def get(self, request, format=None):
-        users = nlargest(10,UserModel.objects.all(),key=lambda t: t.points)
+        users = nlargest(10,self.get_queryset(),key=lambda t: t.points)
         rows = []
         for user in users:
             history = SolutionDetail.objects.filter(user = user).filter(solved=True).filter(challenge__is_hidden=False).order_by('pub_date')
@@ -69,7 +78,7 @@ class ScoreboardView(ListAPIView):
 
     @cache_response(key_func=utils.ScoreboardKeyConstructor())
     def list(self, request, *args, **kwargs):
-        playerQueryset = sorted(UserModel.objects.all().filter(is_hidden=False), key=lambda t: t.points,reverse=True)
+        playerQueryset = sorted(self.get_queryset(), key=lambda t: t.points,reverse=True)
         challengeQueryset = Challenge.objects.all().filter(is_hidden=False)
         challengeSerializer = TinyChallengeSerializer(challengeQueryset, many=True)
         
@@ -81,3 +90,8 @@ class ScoreboardView(ListAPIView):
         playerSerializer = serializers.ScoreboardSerializer(playerQueryset, many=True)
         return Response({"challenges":challengeSerializer.data,"players":playerSerializer.data})
     
+class StuTopTenTrendView(TopTenTrendView):
+    queryset = UserModel.objects.filter(Q(email__endswith=settings.SCHOOL_EMAIL_SUFFIX))
+
+class StuScoreboardView(ScoreboardView):
+    queryset = UserModel.objects.filter(Q(email__endswith=settings.SCHOOL_EMAIL_SUFFIX))

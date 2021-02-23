@@ -1,4 +1,5 @@
 from django.urls import path
+from django.conf import settings
 from rest_framework.urlpatterns import format_suffix_patterns
 from contest import views
 
@@ -8,5 +9,11 @@ urlpatterns = [
     path('contest/scoreboard/',views.ScoreboardView.as_view(), name='Contest Scoreboard'),
     path('admin/contest/', views.AdminContestManager.as_view()),
 ]
+
+if settings.ENABLE_SCHOOL_RANKING:
+    urlpatterns.extend([
+        path('contest/trend/stu/',views.StuTopTenTrendView.as_view(), name='Stu Contest Trend'),
+        path('contest/scoreboard/stu/',views.StuScoreboardView.as_view(), name='Stu Contest Scoreboard'),
+    ])
 
 urlpatterns = format_suffix_patterns(urlpatterns)

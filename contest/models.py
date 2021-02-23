@@ -10,9 +10,6 @@ class Contest(models.Model):
     start_time = models.DateTimeField(null=True)
     end_time = models.DateTimeField(null=True)
     description = models.TextField(null=True)
-    have_school_ranking = models.BooleanField(default=False)
-    #divided by , example: bupt.edu.cn,sjtu.edu.cn
-    school_email_suffixes = models.CharField(null=True,max_length=256)
 
 
 def change_contest_updated_at(sender=None, instance=None, *args, **kwargs):
