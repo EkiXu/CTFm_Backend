@@ -34,6 +34,7 @@ class FullChallengeSerializer(serializers.ModelSerializer):
             "attempt_amount",
             "points",
         ]
+        extra_kwargs = {"attachment_url": {"required": False, "allow_null": True,"allow_blank": True},"summary": {"required": False, "allow_null": True,"allow_blank": True}}
 
 class TinyChallengeSerializer(serializers.ModelSerializer):
     class Meta:
