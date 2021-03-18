@@ -9,8 +9,8 @@ from challenge.consumers import ChangllengeConsumer
 application = ProtocolTypeRouter({
     "websocket": AuthMiddlewareStack(
         URLRouter([
-            url(r"^api/v1/notification/$", NotificationListConsumer.as_asgi()),
-            url(r"^api/v1/challenge/$", ChangllengeConsumer.as_asgi()),
+            url(r"^ws/api/v1/notification/$", NotificationListConsumer.as_asgi()),
+            url(r"^ws/api/v1/challenge/$", ChangllengeConsumer.as_asgi()),
         ])
     ),
  })

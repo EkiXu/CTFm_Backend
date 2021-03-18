@@ -14,6 +14,7 @@ cp script/uwsgi.ini.template  script/uwsgi.ini # And Modify it yourself
 pip install -r requirements.txt
 pip install https://github.com/chibisov/drf-extensions/archive/master.zip # drf-extensions for cache and nest router
 uwsgi --ini script/uwsgi.ini
+daphne -b 0.0.0.0 -p 8087 CTFm_backend.asgi:application
 uwsgi --stop script/uwsgi.pid
 ```
 
@@ -24,8 +25,9 @@ uwsgi --stop script/uwsgi.pid
 - [x] Scoreboard & TrendChart
 - [x] ChangePassword
 - [X] Notification Manage
-- [ ] Realtime Notification
+- [x] Realtime Notification
 - [x] Dynamic Challenge Score Support
+- [x] Boardcast TOP3 Socrer via Websocket
 - [ ] Dynamic Docker Challenge Support
 - [ ] Team Support
 

@@ -70,7 +70,7 @@ class ChallengeViewSet(viewsets.ReadOnlyModelViewSet):
         categoryName = self.request.query_params.get('categoryName', None)
         if categoryName is not None:
             try:
-                category = ChallengeCategory.objects.get(name = categoryName)
+                category = ChallengeCategory.objects.get(name__iexact = categoryName)
             except ObjectDoesNotExist:
                 return Challenge.objects.none()
             queryset = queryset.filter(category=category.id)

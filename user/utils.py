@@ -12,8 +12,6 @@ from tencentcloud.ses.v20201002 import ses_client, models
 
 from contest.models import Contest
 
-contest = Contest.objects.all().first()
-
 class TokenGenerator(PasswordResetTokenGenerator):
     def _make_hash_value(self, user, timestamp):
         return (
@@ -33,7 +31,7 @@ clientProfile.httpProfile = httpProfile
 client = ses_client.SesClient(cred, "ap-hongkong", clientProfile) 
 
 def sendRegisterValidationEmail(user,current_site):
-    
+    contest = Contest.objects.all().first()
     templateData = {
         "contest_name":contest.name,
         "username": user.username,
@@ -58,7 +56,7 @@ def sendRegisterValidationEmail(user,current_site):
 
 
 def sendResetPasswordmail(user,current_site):
-
+    contest = Contest.objects.all().first()
     templateData = {
         "contest_name":contest.name,
         "username": user.username,

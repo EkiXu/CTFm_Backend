@@ -4,7 +4,7 @@ djangorestframework-simplejwt
 djangochannelsrestframework
 django-redis
 hiredis
-mysqlclient
+psycopg2
 channels
 channels_redis
 drf_recaptcha

@@ -84,12 +84,12 @@ WSGI_APPLICATION = 'CTFm_backend.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql',
+        'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'ctfm',
         'USER': 'ctfm',
-        'PASSWORD': 'mysqlpasswd',
+        'PASSWORD': 'postgresqlpasswd',
         'HOST': 'localhost',
-        'PORT': '3306',
+        'PORT': '5432',
     }
 }
 
