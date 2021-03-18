@@ -19,6 +19,10 @@ from challenge import permissions
 
 from contest.utils import contest_began_or_forbbiden,in_contest_time_or_forbbiden
 
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
+channel_layer = get_channel_layer()
+
 class ChallengeCategoryViewSet(viewsets.ReadOnlyModelViewSet):
     """
     Project viewset automatically provides `list`, `retrieve`
@@ -114,7 +118,7 @@ class ChallengeViewSet(viewsets.ReadOnlyModelViewSet):
     @in_contest_time_or_forbbiden
     def checkFlag(self,request,pk=None,*args,**kwargs):
         challenge = self.get_object()
-        flag = ""
+        flag = "" 
         try:
             flag = request.data['flag']
             detail = SolutionDetail.objects.get(challenge = challenge, user = request.user)
@@ -128,6 +132,7 @@ class ChallengeViewSet(viewsets.ReadOnlyModelViewSet):
             return Response({'detail': 'Already Solved'},status=status.HTTP_400_BAD_REQUEST)
         else:
             detail.times += 1
+            
             if challenge.flag == flag:
                 user = request.user
                 detail.solved = True
@@ -136,6 +141,10 @@ class ChallengeViewSet(viewsets.ReadOnlyModelViewSet):
                 user.save(update_fields=["last_point_at"])
                 cache.set("rank_updated_at", datetime.utcnow())
                 cache.set("challenge_points_updated_at", datetime.utcnow())
+                amount = challenge.solved_amount
+                if amount < 3: 
+                    msg = f"Congratulations to [{request.user}] for getting the {utils.challenge_bloods[amount-1]} of [{challenge.title}]"
+                    async_to_sync(channel_layer.group_send)("challenge", {"type": "challenge.message", "message": msg}) 
                 return Response({'detail': 'Solved Successfully'})
             else:
                 detail.save()

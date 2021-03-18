@@ -1,3 +1,4 @@
+import challenge
 from datetime import datetime
 from django.core.cache import cache
 from rest_framework_extensions.key_constructor.bits import (
@@ -11,6 +12,7 @@ from rest_framework_extensions.key_constructor.constructors import DefaultKeyCon
 
 from contest.models import Contest
 
+challenge_bloods = ["First Blood","Second Blood","Third Blood"]
 
 class UpdatedAtKeyBit(KeyBitBase):
     key = "updated_at"
