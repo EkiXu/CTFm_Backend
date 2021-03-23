@@ -52,7 +52,7 @@ class AdminContestManager(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class TopTenTrendView(APIView):
-    queryset = UserModel.objects.all()
+    queryset = UserModel.objects.all().filter(is_hidden = False)
     def get_queryset(self):
         query = self.queryset.all()
         return query
