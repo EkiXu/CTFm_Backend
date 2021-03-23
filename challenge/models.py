@@ -4,6 +4,7 @@ from django.db.models.aggregates import Count,Sum
 from django.db import models
 from django.db.models.signals import post_delete, post_save
 from django.core.cache import cache
+import django.utils.timezone as timezone
 
 from user.models import BaseUser
 
@@ -12,7 +13,7 @@ class ChallengeCategory(models.Model):
     name = models.CharField(max_length=64,unique=True)
     description = models.CharField(max_length=512)
     icon = models.CharField(max_length=64,default="")
-    updated_at = models.DateTimeField(auto_now=True)
+    updated_at = models.DateTimeField(default=timezone.now)
 
 def change_challenge_category_updated_at(sender=None, instance=None, *args, **kwargs):
     cache.set("challenge_category_updated_at", datetime.utcnow())
@@ -67,6 +68,7 @@ class Challenge(models.Model):
 
 def change_challenge_updated_at(sender=None, instance=None, *args, **kwargs):
     cache.set("challenge_updated_at", datetime.utcnow())
+    instance.category.update_at = models.DateTimeField(default=timezone.now())
 
 post_save.connect(receiver=change_challenge_updated_at, sender=Challenge)
 post_delete.connect(receiver=change_challenge_updated_at, sender=Challenge)
