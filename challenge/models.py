@@ -44,13 +44,13 @@ class Challenge(models.Model):
 
     @property
     def attempt_amount(self):
-        amount = SolutionDetail.objects.filter(challenge = self).aggregate(nums=Sum('times'))
+        amount = SolutionDetail.objects.filter(challenge = self).filter(user__is_hidden = False).aggregate(nums=Sum('times'))
         if amount['nums'] == None:
             return 0
         return amount['nums']
     @property
     def solved_amount(self):
-        amount = SolutionDetail.objects.filter(challenge = self).filter(solved=True).count()
+        amount = SolutionDetail.objects.filter(challenge = self).filter(user__is_hidden = False).filter(solved=True).count()
         return amount
 
     @property
@@ -101,6 +101,11 @@ class ContestUser(BaseUser):
         amount = SolutionDetail.objects.filter(user = self).aggregate(nums=Sum('times'))
         return amount
 
+def change_rank_updated_at(sender=None, instance=None, *args, **kwargs):
+    cache.set("rank_updated_at", datetime.utcnow())
+
+post_save.connect(receiver=change_rank_updated_at, sender=ContestUser)
+post_delete.connect(receiver=change_rank_updated_at, sender=ContestUser)
 
 class SolutionDetail(models.Model):
     challenge = models.ForeignKey(Challenge,on_delete=models.CASCADE)
