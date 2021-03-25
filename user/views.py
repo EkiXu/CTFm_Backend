@@ -149,7 +149,7 @@ class UserViewSet(RetrieveModelMixin,
     """
     User viewset automatically provides `retrieve` and `update` actions.
     """
-    queryset = UserModel.objects.all().filter(is_hidden=False)
+    queryset = UserModel.objects.all()
     pagination_class = LimitOffsetPagination
     
     def get_throttles(self):
