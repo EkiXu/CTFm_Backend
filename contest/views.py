@@ -1,3 +1,4 @@
+import challenge
 from heapq import nlargest
 
 from django.contrib.auth import get_user_model
@@ -79,7 +80,10 @@ class ScoreboardView(ListAPIView):
     @cache_response(key_func=utils.ScoreboardKeyConstructor())
     def list(self, request, *args, **kwargs):
         playerQueryset = sorted(self.get_queryset(), key=lambda t: t.points,reverse=True)
-        challengeQueryset = Challenge.objects.all().filter(is_hidden=False)
+        challengeQueryset = []
+        if not utils.IsBeforeContest():
+            challengeQueryset = Challenge.objects.all().filter(is_hidden=False)
+
         challengeSerializer = TinyChallengeSerializer(challengeQueryset, many=True)
         
         page = self.paginate_queryset(playerQueryset)
