@@ -175,7 +175,7 @@ class UserViewSet(RetrieveModelMixin,
         """
         if self.action == 'retrieve' or self.action == 'update':
             permission_classes = [pemissions.IsOwnerOrAdmin]
-        elif self.action == 'getStatus' or self.action == 'verifyEmail':
+        elif self.action == 'getStatus' or self.action == 'sendVerifyEmail':
             permission_classes = [IsAuthenticated]
         else:
             permission_classes = [IsAdminUser]
