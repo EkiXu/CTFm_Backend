@@ -66,7 +66,7 @@ class ChallengeViewSet(viewsets.ReadOnlyModelViewSet):
         Optionally restricts the returned purchases to a given user,
         by filtering against a `categoryName` query parameter in the URL.
         """
-        queryset = Challenge.objects.all()
+        queryset = Challenge.objects.all().filter(is_hidden=False)
         categoryName = self.request.query_params.get('categoryName', None)
         if categoryName is not None:
             try:
