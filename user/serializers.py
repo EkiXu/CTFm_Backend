@@ -3,18 +3,19 @@ from django.contrib.sites.shortcuts import get_current_site
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from drf_recaptcha.fields import ReCaptchaV2Field
-from user.utils import sendRegisterValidationEmail
 from django.conf import settings
+from user.utils import sendRegisterValidationEmail
 
 UserModel = get_user_model()
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserModel
-        fields = ("id","nickname","is_verified","solved_amount","points","last_point_at")
+        fields = ("id","nickname","team","is_verified","solved_amount","points","last_point_at")
         read_only_field = [
             "id",
             "nickname",
+            "team",
             "solved_amount",
             "email",
             "points",
@@ -26,7 +27,7 @@ class UserSerializer(serializers.ModelSerializer):
 class UserDetailSerializer(UserSerializer):
     class Meta:
         model = UserModel
-        fields = ("id","email","username","nickname","is_verified","solved_amount","points")
+        fields = ("id","email","username","nickname","team","is_verified","solved_amount","points")
         read_only_fields = [
             "id",
             "username",
@@ -34,12 +35,13 @@ class UserDetailSerializer(UserSerializer):
             "points",
             "solved_amount",
             "is_verified",
+            "team",
         ]
 
 class UserFullSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserModel
-        fields =  ("id","email","username","nickname","solved_amount","points","is_hidden","is_staff","is_verified")
+        fields =  ("id","email","username","nickname","team","solved_amount","points","is_hidden","is_staff","is_verified")
         read_only_fields = [
             "id",
             "points",

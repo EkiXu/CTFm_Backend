@@ -126,7 +126,7 @@ class ChallengeViewSet(viewsets.ReadOnlyModelViewSet):
             return Response({'detail': 'Flag Field is NULL.'},status=status.HTTP_400_BAD_REQUEST)
         except ObjectDoesNotExist:
             user = request.user
-            detail = SolutionDetail(challenge = challenge,user = user,solved = False)
+            detail = SolutionDetail(challenge = challenge,user = user,team = user.team,solved = False)
                 
         if detail.solved == True:
             return Response({'detail': 'Already Solved'},status=status.HTTP_400_BAD_REQUEST)

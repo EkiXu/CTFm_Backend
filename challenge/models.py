@@ -1,12 +1,11 @@
 
 from datetime import datetime
+from enum import Flag
 from django.db.models.aggregates import Count,Sum
 from django.db import models
 from django.db.models.signals import post_delete, post_save
 from django.core.cache import cache
 import django.utils.timezone as timezone
-
-from user.models import BaseUser
 
 # Create your models here.
 class ChallengeCategory(models.Model):
@@ -44,18 +43,18 @@ class Challenge(models.Model):
         ChallengeCategory,related_name='challenges',on_delete=models.CASCADE)
 
     @property
-    def attempt_amount(self):
+    def attempt_amount(self) -> int:
         amount = SolutionDetail.objects.filter(challenge = self).filter(user__is_hidden = False).aggregate(nums=Sum('times'))
         if amount['nums'] == None:
             return 0
         return amount['nums']
     @property
-    def solved_amount(self):
+    def solved_amount(self) -> int:
         amount = SolutionDetail.objects.filter(challenge = self).filter(user__is_hidden = False).filter(solved=True).count()
         return amount
 
     @property
-    def points(self):
+    def points(self) -> float:
         if self.decay == 0:
             return self.initial_points
         value = (
@@ -74,44 +73,12 @@ post_save.connect(receiver=change_challenge_updated_at, sender=Challenge)
 post_delete.connect(receiver=change_challenge_updated_at, sender=Challenge)
 
 post_save.connect(receiver=change_challenge_category_updated_at, sender=Challenge)
-post_delete.connect(receiver=change_challenge_category_updated_at, sender=Challenge)
-
-class ContestUser(BaseUser):
-    
-    attempted_challenges = models.ManyToManyField(Challenge, through='SolutionDetail')
-
-    @property
-    def points(self):
-        value = 0
-        all_solved_challenge = SolutionDetail.objects.filter(user=self).filter(solved=True).filter(challenge__is_hidden=False)
-        for solved_challenge in all_solved_challenge:
-            value = value+ solved_challenge.challenge.points
-        return value
-
-    @property
-    def solved_amount(self):
-        amount = SolutionDetail.objects.filter(user = self).filter(solved=True).filter(challenge__is_hidden=False).count()
-        return amount
-
-    @property
-    def solved_challenges(self):
-        challenges = SolutionDetail.objects.filter(user = self).filter(solved=True).values("challenge","pub_date")
-        return challenges
-
-    @property
-    def attempt_amount(self):
-        amount = SolutionDetail.objects.filter(user = self).aggregate(nums=Sum('times'))
-        return amount
-
-def change_rank_updated_at(sender=None, instance=None, *args, **kwargs):
-    cache.set("rank_updated_at", datetime.utcnow())
-
-post_save.connect(receiver=change_rank_updated_at, sender=ContestUser)
-post_delete.connect(receiver=change_rank_updated_at, sender=ContestUser)
+post_delete.connect(receiver=change_challenge_category_updated_at, sender=Challenge)    
 
 class SolutionDetail(models.Model):
-    challenge = models.ForeignKey(Challenge,on_delete=models.CASCADE)
-    user = models.ForeignKey(ContestUser,on_delete=models.CASCADE)
+    challenge:Challenge = models.ForeignKey(Challenge,on_delete=models.CASCADE)
+    user = models.ForeignKey("user.User",on_delete=models.CASCADE)
+    team = models.ForeignKey("team.Team",default=None,null=True,on_delete=models.SET_NULL)
     solved = models.BooleanField(default=False)
     times = models.IntegerField(default=1)
     pub_date = models.DateTimeField(auto_now=True)

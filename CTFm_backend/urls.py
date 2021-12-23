@@ -6,5 +6,6 @@ urlpatterns = [
     path('api/v1/',include('user.urls')),
     path('api/v1/',include('notification.urls')),
     path('api/v1/',include('contest.urls')),
-    #path('api-auth/', include('rest_framework.urls', namespace='rest_framework'))
+    path('api/v1/',include('team.urls')),
+    path('api-auth/', include('rest_framework.urls', namespace='rest_framework'))
 ]

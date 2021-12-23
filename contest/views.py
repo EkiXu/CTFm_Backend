@@ -1,3 +1,5 @@
+from rest_framework.serializers import Serializer
+from rest_framework.viewsets import GenericViewSet
 import challenge
 from heapq import nlargest
 
@@ -26,10 +28,12 @@ class ContestManager(APIView):
     """
     Get Contest Detail And Update Contest Detail
     """
+    serializer_class = serializers.ContestSerializer
+
     @cache_response(60*60*24,key_func=utils.ContestKeyConstructor())
     def get(self, request, format=None):
         contest = models.Contest.objects.get(pk=1)
-        serializer = serializers.ContestSerializer(contest)
+        serializer = self.serializer_class(contest)
         return Response(serializer.data)
 
 
@@ -38,15 +42,16 @@ class AdminContestManager(APIView):
     Get Contest Detail And Update Contest Detail
     """
     permission_classes = [IsAdminUser]
+    serializer_class = serializers.ContestSerializer
     
     def get(self, request, format=None):
         contest = models.Contest.objects.all().first()
-        serializer = serializers.ContestSerializer(contest)
+        serializer = self.serializer_class(contest)
         return Response(serializer.data)
 
     def put(self, request, format=None):
         contest = models.Contest.objects.all().first()
-        serializer = serializers.ContestSerializer(contest, data=request.data)
+        serializer = self.serializer_class(contest, data=request.data)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
