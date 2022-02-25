@@ -105,3 +105,5 @@ fabfile.py
 settings.py
 
 *.test
+
+docker-compose.yml

@@ -150,6 +150,12 @@ class ChallengeViewSet(viewsets.ReadOnlyModelViewSet):
                 detail.save()
                 return Response({'detail': 'Wrong Flag'},status=status.HTTP_400_BAD_REQUEST)
 
+    @action(detail=True,methods=['GET','POST','DELETE'],url_name='manage_environment',url_path='env')
+    @contest_began_or_forbbiden
+    def manageContainer(self,request,pk=None,*args,**kwargs):
+        return Response("developing")
+
+
 class AdminChallengeViewSet(viewsets.ModelViewSet):
     """
     Challenge viewset automatically provides `list`, `create`,

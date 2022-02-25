@@ -12,6 +12,7 @@ from rest_framework.routers import DefaultRouter
 
 router = DefaultRouter()
 router.register(r'team', views.TeamViewSet)
+router.register(r'admin/team', views.AdminTeamViewSet)
 
 urlpatterns = [
     re_path(r'', include(router.urls)),

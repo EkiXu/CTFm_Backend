@@ -1,6 +1,6 @@
-from django.http import request
 from rest_framework import viewsets
 from rest_framework import serializers
+from rest_framework.validators import UniqueTogetherValidator
 
 from user.models import User
 
@@ -10,8 +10,9 @@ from team import utils
 class BaseTeamSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.Team
-        fields = ['name','avatar_url','description',"solved_amount","points"]
+        fields = ['id','name','avatar_url','description',"solved_amount","points"]
         read_only_fields = [
+            "id",
             "name",
             "points",
             "solved_amount"
@@ -20,27 +21,35 @@ class BaseTeamSerializer(serializers.ModelSerializer):
 class DetailedTeamSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.Team
-        fields = ['name','avatar_url','description','leader','token',"solved_amount","points"]
+        fields = ['id','name','avatar_url','description','leader','token',"solved_amount","members","points"]
         read_only_fields = [
+            "id",
             "token",
             "name",
+            "members",
             "points",
             "solved_amount"
         ]
 
 class CreateTeamSerializer(serializers.ModelSerializer):
-    name = serializers.CharField(required=True, allow_blank=False, max_length=64)
-    description = serializers.CharField(required=False, allow_blank=True, max_length=128)
-    avatar_url = serializers.CharField(required=False, allow_blank=True, max_length=128)
-
     class Meta:
         model = models.Team
-        fields = ['name','description','avatar_url','leader']
+        fields = ['id','name','token','description','avatar_url','leader']
+        read_only_fields = [
+            "id",
+            "token",
+        ]
+        validators = [
+            UniqueTogetherValidator(
+                queryset=models.Team.objects.all(),
+                fields=['name','leader']
+            )
+        ]
     
     def create(self, validated_data):
-        token = utils.genTeamToken(validated_data.get('name'))
-        leader = validated_data.get('leader')
-        team = models.Team.objects.create(name=validated_data.get('name'),description=validated_data.get('description'),avatar_url = validated_data.get('avatar_url'),leader = leader,token=token)
+        validated_data["token"] = utils.genRandomTeamToken()
+        team = super().create(validated_data)
+        leader = team.leader
         leader.team = team
         leader.save()
         return team

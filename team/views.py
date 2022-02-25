@@ -1,9 +1,10 @@
+from venv import create
 from django.shortcuts import render
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.serializers import BaseSerializer
 from rest_framework.viewsets import GenericViewSet
-from rest_framework import status, viewsets
+from rest_framework import status, viewsets,mixins
 
 from team import models
 from team import serializers
@@ -11,7 +12,12 @@ from team import permissions
 
 # Create your views here.
 
-class TeamViewSet(viewsets.ModelViewSet):
+class TeamViewSet(mixins.CreateModelMixin,
+                   mixins.RetrieveModelMixin,
+                   mixins.UpdateModelMixin,
+                   mixins.ListModelMixin,
+                   mixins.DestroyModelMixin,
+                   GenericViewSet):
     """
     API endpoint that allows users to be viewed or edited.
     """
@@ -28,6 +34,10 @@ class TeamViewSet(viewsets.ModelViewSet):
             return serializers.JoinTeamSerializer
         else : 
             return serializers.BaseTeamSerializer
+    
+    def create(self, request, *args, **kwargs):
+        request.data["leader"] = request.user.pk
+        return super().create(request, *args, **kwargs)
 
     def get_permissions(self):
         """
@@ -35,7 +45,7 @@ class TeamViewSet(viewsets.ModelViewSet):
         """
         if self.action == 'create' or self.action == 'retrieve' or self.action == "list" or self.action == "joinTeam":
             permission_classes = []
-        elif self.action == "update" or self.action == 'delete':
+        elif self.action == "update" or self.action == 'destory':
             permission_classes = [permissions.IsLeaderOrAdmin]
         else:
             permission_classes = [permissions.IsLeaderOrAdmin]
@@ -43,7 +53,7 @@ class TeamViewSet(viewsets.ModelViewSet):
 
     @action(detail=False,methods=['POST'],url_name='joinTeam',url_path='ticket')
     def joinTeam(self,request,*args,**kwargs):
-        serializer:BaseSerializer = self.get_serializer(data=request.data)
+        serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
             token = serializer.data["token"]
             user = request.user
@@ -54,8 +64,25 @@ class TeamViewSet(viewsets.ModelViewSet):
                 team = models.Team.objects.get(token=token)
                 user.team = team
                 user.save()
-                return Response({"detail":f"Joined {team.name} Successfully"},status=status.HTTP_200_OK)
+                return Response(serializers.DetailedTeamSerializer(data=team.value()),status=status.HTTP_200_OK)
             except models.Team.DoesNotExist as e:
                 return Response({"detail":f"Token Error"},status=status.HTTP_400_BAD_REQUEST)
         else:
             return Response({"detail":f"Token Error"},status=status.HTTP_400_BAD_REQUEST)
+
+class AdminTeamViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint that allows users to be viewed or edited.
+    """
+    queryset = models.Team.objects.all()
+    permission_classes = [permissions.IsAdmin]
+
+    def get_serializer_class(self):
+        if self.action == "retrieve":
+            return serializers.DetailedTeamSerializer
+        elif self.action == "update":
+            return serializers.DetailedTeamSerializer
+        elif self.action == "create":
+            return serializers.CreateTeamSerializer
+        else : 
+            return serializers.BaseTeamSerializer

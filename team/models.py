@@ -28,6 +28,19 @@ class Team(models.Model):
         return value
 
     @property
+    def members(self):
+        data = self.user_set.all()
+        members = []
+        for user in data:
+            userInfo = {
+                "id":user.pk,
+                "nickname":user.nickname,
+                "points":user.points,
+            }
+            members.append(userInfo)
+        return members
+
+    @property
     def solved_amount(self) -> int:
         amount = SolutionDetail.objects.filter(team = self).filter(solved=True).filter(challenge__is_hidden=False).count()
         return amount
