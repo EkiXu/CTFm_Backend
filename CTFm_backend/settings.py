@@ -12,7 +12,6 @@ https://docs.djangoproject.com/en/3.1/ref/settings/
 
 from pathlib import Path
 from datetime import timedelta
-import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -27,9 +26,9 @@ SECRET_KEY = "MODIFIY_IT_YOURSELF!"
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = "*"
+ALLOWED_HOSTS = ["*"]
 
-AUTH_USER_MODEL = 'challenge.ContestUser'
+AUTH_USER_MODEL = 'user.User'
 
 # Application definition
 
@@ -45,7 +44,8 @@ INSTALLED_APPS = [
     'user.apps.UserConfig',
     'notification.apps.NotificationConfig',
     'contest.apps.ContestConfig',
-    #'channels',
+    'team.apps.TeamConfig',
+    'channels',
 ]
 
 MIDDLEWARE = [
@@ -87,8 +87,8 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'ctfm',
         'USER': 'ctfm',
-        'PASSWORD': 'postgresqlpasswd',
-        'HOST': 'localhost',
+        'PASSWORD': 'ctfm',
+        'HOST': 'db',
         'PORT': '5432',
     }
 }
@@ -96,26 +96,29 @@ DATABASES = {
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": "redis://127.0.0.1:6379",
+        "LOCATION": "redis://redis:6379",
         "OPTIONS": {
+            "PASSWORD":"redispassword",
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
         }
     }
 }
 
-'''
+default_auto_field = 'django.db.models.BigAutoField'
+
+
 
 ASGI_APPLICATION = 'CTFm_backend.routing.application'
 
 CHANNEL_LAYERS = {
     "default": {
-        "BACKEND": "asgi_redis.RedisChannelLayer",
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
             "hosts": [("localhost", 6379)],
         },
     },
 }
-'''
+
 
 # Password validation
 # https://docs.djangoproject.com/en/3.1/ref/settings/#auth-password-validators
@@ -221,3 +224,9 @@ RESET_PASSWORD_EMAIL_TEMPLATE = 0
 
 ENABLE_SCHOOL_RANKING = False
 SCHOOL_EMAIL_SUFFIX = ''
+
+
+try:
+    from local_settings import *
+except ImportError:
+    pass

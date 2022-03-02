@@ -99,11 +99,7 @@ media/
 fabfile.py
 
 # Config
-*.ini
 *.pid
 *.sock
-settings.py
 
 *.test
-
-docker-compose.yml

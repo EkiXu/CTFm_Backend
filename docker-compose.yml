@@ -1,0 +1,29 @@
+version: "3.8"
+services:
+  db:
+    image: postgres
+    environment:
+      - POSTGRES_DB=ctfm
+      - POSTGRES_USER=ctfm
+      - POSTGRES_PASSWORD=ctfm
+    expose: 
+      - 5432
+  redis:
+    image: redis
+    command: redis-server --requirepass redispassword
+    expose:
+        - 6379
+  ctfm:
+    image: ctfm
+    build: "."
+    volumes:
+      - .:/backend
+    restart: always
+    ports:
+      - "18086:8086"
+    environment: 
+      - SECRET_KEY="Test"
+    depends_on:
+      - migration
+      - db
+      - redis
