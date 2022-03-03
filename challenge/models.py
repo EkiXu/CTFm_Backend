@@ -1,6 +1,5 @@
 
 from datetime import datetime
-from enum import Flag
 from django.db.models.aggregates import Count,Sum
 from django.db import models
 from django.db.models.signals import post_delete, post_save
@@ -85,23 +84,3 @@ class SolutionDetail(models.Model):
  
     class Meta:
         ordering=['-pub_date']
-    
-
-class ChallengeDocker():
-    challenge = models.ForeignKey(
-    Challenge,related_name='docker',on_delete=models.CASCADE)
-    TCP = 1
-    HTTP = 2
-    PROTOCOL_CHOICES = [
-        (TCP, 'TCP'),
-        (HTTP, 'HTTP'),
-    ]
-    protocol = models.IntegerField(
-        max_length=2,
-        choices=PROTOCOL_CHOICES,
-        default=TCP,
-    )
-    image = models.CharField(max_length=512)
-    port = models.IntegerField()
-    memory_limit = models.CharField(max_length=64, default="128m")
-    cpu_limit = models.FloatField(default=0.5)

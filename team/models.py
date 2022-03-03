@@ -21,7 +21,7 @@ class Team(models.Model):
     @property
     def points(self) -> float:
         value = 0
-        all_solved_challenge = SolutionDetail.objects.filter(team=self).filter(solved=True).filter(challenge__is_hidden=False)
+        all_solved_challenge = SolutionDetail.objects.filter(team=self).filter(solved=True).filter(user__is_hidden=False).filter(challenge__is_hidden=False).filter(challenge__is_hidden=False)
         solved_challenge:SolutionDetail
         for solved_challenge in all_solved_challenge:
             value = value+ solved_challenge.challenge.points
@@ -42,12 +42,12 @@ class Team(models.Model):
 
     @property
     def solved_amount(self) -> int:
-        amount = SolutionDetail.objects.filter(team = self).filter(solved=True).filter(challenge__is_hidden=False).count()
+        amount = SolutionDetail.objects.filter(team = self).filter(solved=True).filter(user__is_hidden=False).filter(challenge__is_hidden=False).count()
         return amount
 
     @property
     def solved_challenges(self) -> int:
-        challenges = SolutionDetail.objects.filter(team = self).filter(solved=True).values("challenge","pub_date")
+        challenges = SolutionDetail.objects.filter(team = self).filter(solved=True).filter(user__is_hidden=False).filter(challenge__is_hidden=False).values("challenge","pub_date")
         return challenges
 
     @property

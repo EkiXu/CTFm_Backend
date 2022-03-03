@@ -1,16 +1,15 @@
-from django.contrib.auth import get_user_model
 from django.contrib.sites.shortcuts import get_current_site
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from drf_recaptcha.fields import ReCaptchaV2Field
 from django.conf import settings
-from user.utils import sendRegisterValidationEmail
 
-UserModel = get_user_model()
+from user import utils
+from user import models
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
-        model = UserModel
+        model = models.User
         fields = ("id","nickname","team","is_verified","solved_amount","points","last_point_at")
         read_only_field = [
             "id",
@@ -26,7 +25,7 @@ class UserSerializer(serializers.ModelSerializer):
 
 class UserDetailSerializer(UserSerializer):
     class Meta:
-        model = UserModel
+        model = models.User
         fields = ("id","email","username","nickname","team","is_verified","solved_amount","points")
         read_only_fields = [
             "id",
@@ -40,7 +39,7 @@ class UserDetailSerializer(UserSerializer):
 
 class UserFullSerializer(serializers.ModelSerializer):
     class Meta:
-        model = UserModel
+        model = models.User
         fields =  ("id","email","username","nickname","team","solved_amount","points","is_hidden","is_staff","is_verified")
         read_only_fields = [
             "id",
@@ -53,7 +52,7 @@ class UserDetailUpdateSerializer(serializers.ModelSerializer):
     new_password = serializers.CharField(write_only=True,required=False,allow_blank=True)
     old_password = serializers.CharField(write_only=True)
     class Meta:
-        model = UserModel
+        model = models.User
         fields = ("id","email","username","nickname","old_password","new_password")
         read_only_fields = [
             "id",
@@ -65,7 +64,7 @@ class EmailSerializer(serializers.Serializer):
 
 class UserEmailSerializer(serializers.ModelSerializer):
     class Meta:
-        model = UserModel
+        model = models.User
         fields = ("email",)
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -78,7 +77,7 @@ class RegisterSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         if settings.ENABLE_EMAIL_VALIDATION == False:
-            user = UserModel.objects.create(
+            user = models.User.objects.create(
                 username = validated_data['username'],
                 email = validated_data['email'],
                 nickname = validated_data['nickname'],
@@ -87,7 +86,7 @@ class RegisterSerializer(serializers.ModelSerializer):
             user.save()
             return user
         else:
-            user = UserModel.objects.create(
+            user = models.User.objects.create(
                 username = validated_data['username'],
                 email = validated_data['email'],
                 nickname = validated_data['nickname'],
@@ -96,12 +95,12 @@ class RegisterSerializer(serializers.ModelSerializer):
             user.set_password(validated_data['password'])
             
             current_site = get_current_site(self.context['request'])
-            sendRegisterValidationEmail(user,current_site=current_site)
+            utils.sendRegisterValidationEmail(user,current_site=current_site)
             user.save()
             return user
 
     class Meta:
-        model = UserModel
+        model = models.User
         fields = ("username","email","nickname",'password','recaptcha')
         required = (
             'username',

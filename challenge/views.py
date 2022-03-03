@@ -91,7 +91,7 @@ class ChallengeViewSet(viewsets.ReadOnlyModelViewSet):
             return serializers.ChallengeSerializer
         elif self.action == 'create' or self.action ==  'update':
             return serializers.FullChallengeSerializer
-        elif self.action == "checkFlag":
+        elif self.action == "check_flag":
             return serializers.FlagSerializer
         else : 
             return serializers.ChallengeDetailSerializer
@@ -116,7 +116,7 @@ class ChallengeViewSet(viewsets.ReadOnlyModelViewSet):
 
     @action(detail=True,methods=['POST'],url_name='checkFlag',url_path='_checkFlag')
     @in_contest_time_or_forbbiden
-    def checkFlag(self,request,pk=None,*args,**kwargs):
+    def check_flag(self,request,pk=None,*args,**kwargs):
         challenge = self.get_object()
         flag = "" 
         try:
@@ -139,6 +139,7 @@ class ChallengeViewSet(viewsets.ReadOnlyModelViewSet):
                 detail.save()
                 user.last_point_at = timezone.now()
                 user.save(update_fields=["last_point_at"])
+                
                 cache.set("rank_updated_at", datetime.utcnow())
                 cache.set("challenge_points_updated_at", datetime.utcnow())
                 amount = challenge.solved_amount
@@ -152,7 +153,7 @@ class ChallengeViewSet(viewsets.ReadOnlyModelViewSet):
 
     @action(detail=True,methods=['GET','POST','DELETE'],url_name='manage_environment',url_path='env')
     @contest_began_or_forbbiden
-    def manageContainer(self,request,pk=None,*args,**kwargs):
+    def manage_container(self,request,pk=None,*args,**kwargs):
         return Response("developing")
 
 

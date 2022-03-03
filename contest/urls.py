@@ -7,6 +7,8 @@ urlpatterns = [
     path('contest/', views.ContestManager.as_view()),
     path('contest/trend/',views.TopTenTrendView.as_view(), name='Contest Trend'),
     path('contest/scoreboard/',views.ScoreboardView.as_view(), name='Contest Scoreboard'),
+    path('contest/trend/team/',views.TopTenTeamTrendView.as_view(), name='Contest Team Trend'),
+    path('contest/scoreboard/team/',views.TeamScoreboardView.as_view(), name='Contest Team Scoreboard'),
     path('admin/contest/', views.AdminContestManager.as_view()),
 ]
 

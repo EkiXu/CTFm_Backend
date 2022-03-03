@@ -15,8 +15,7 @@ from user import serializers
 from user import throttles
 from user import pemissions
 from user import utils
-
-UserModel = auth.get_user_model()
+from user import models
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -56,8 +55,8 @@ def activate(request,user_id,token):
     Activate
     """
     try:
-        user = UserModel.objects.get(id=user_id)
-    except(TypeError, ValueError, OverflowError, UserModel.DoesNotExist):
+        user = models.User.objects.get(id=user_id)
+    except(TypeError, ValueError, OverflowError, models.User.DoesNotExist):
         user = None
     if user is not None and user.is_verified:
         return Response({"detail":"Already Verified."},status=status.HTTP_208_ALREADY_REPORTED)
@@ -104,8 +103,8 @@ def resetPasswordRequest(request):
         return Response({"detail":"Invalid Email Address"},status=status.HTTP_400_BAD_REQUEST)
     
     try:
-        user = UserModel.objects.get(email = email)
-    except(TypeError, ValueError, OverflowError, UserModel.DoesNotExist):
+        user = models.User.objects.get(email = email)
+    except(TypeError, ValueError, OverflowError, models.User.DoesNotExist):
         user = None
 
     if user == None:
@@ -122,8 +121,8 @@ def resetPassword(request,user_id,token):
     ResetPassword
     """
     try:
-        user = UserModel.objects.get(id=user_id)
-    except(TypeError, ValueError, OverflowError, UserModel.DoesNotExist):
+        user = models.User.objects.get(id=user_id)
+    except(TypeError, ValueError, OverflowError, models.User.DoesNotExist):
         user = None
     if user is not None and not user.is_verified:
         return Response({"detail":"Invalid User"},status=status.HTTP_400_BAD_REQUEST)
@@ -145,7 +144,7 @@ class UserViewSet(RetrieveModelMixin,
     """
     User viewset automatically provides `retrieve` and `update` actions.
     """
-    queryset = UserModel.objects.all()
+    queryset = models.User.objects.all()
     pagination_class = LimitOffsetPagination
     
     def get_throttles(self):
@@ -231,7 +230,7 @@ class AdminUserViewSet(viewsets.ModelViewSet):
     User viewset automatically provides `list`, `create`, `retrieve`,
     `update` and `destroy` actions.
     """
-    queryset = UserModel.objects.all()
+    queryset = models.User.objects.all()
     pagination_class = LimitOffsetPagination
     permission_classes = [IsAdminUser]
     serializer_class = serializers.UserFullSerializer
