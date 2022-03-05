@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'notification.apps.NotificationConfig',
     'contest.apps.ContestConfig',
     'team.apps.TeamConfig',
+    'dynamic.apps.DynamicConfig',
     'channels',
 ]
 

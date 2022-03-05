@@ -8,6 +8,8 @@ services:
       - POSTGRES_PASSWORD=ctfm
     expose: 
       - 5432
+    ports:
+      - "28432:5432"
   redis:
     image: redis
     command: redis-server --requirepass redispassword
@@ -20,7 +22,7 @@ services:
       - .:/backend
     restart: always
     ports:
-      - "18086:8086"
+      - "28082:8086"
     environment: 
       - SECRET_KEY="Test"
     depends_on:

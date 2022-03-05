@@ -32,14 +32,29 @@ class Challenge(models.Model):
     decay = models.BigIntegerField(default=0)
 
     is_hidden = models.BooleanField(default=True)
-    
-    have_dynamic_container = models.BooleanField(default=False)
 
     attachment_url = models.CharField(max_length=512,null=True)
     flag = models.CharField(max_length=512,default="")
 
     category = models.ForeignKey(
         ChallengeCategory,related_name='challenges',on_delete=models.CASCADE)
+
+    has_dynamic_container = models.BooleanField(default=False)
+
+    TCP = 1
+    HTTP = 2
+    PROTOCOL_CHOICES = [
+        (TCP, 'TCP'),
+        (HTTP, 'HTTP'),
+    ]
+    protocol = models.IntegerField(
+        choices=PROTOCOL_CHOICES,
+        default=TCP,
+    )
+    image = models.CharField(max_length=512,null=True)
+    redirect_port = models.IntegerField(null=True)
+    memory_limit = models.CharField(max_length=64, default="128m",null=True)
+    cpu_limit = models.FloatField(default=0.5,null=True)
 
     @property
     def attempt_amount(self) -> int:

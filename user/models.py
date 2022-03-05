@@ -6,6 +6,7 @@ from django.db.models.aggregates import Sum
 from django.db.models.signals import post_delete, post_save
 from team.models import Team
 from challenge.models import Challenge,SolutionDetail
+from dynamic.models import ChallengeContainer
 
 class User(AbstractUser):
     email = models.EmailField(unique=True)
@@ -41,6 +42,12 @@ class User(AbstractUser):
     def attempt_amount(self) -> int:
         amount = SolutionDetail.objects.filter(user = self).aggregate(nums=Sum('times'))
         return amount
+
+    @property
+    def container_amount(self):
+        amount = ChallengeContainer.objects.filter(user = self).count()
+        return amount
+
 
 def change_rank_updated_at(sender=None, instance=None, *args, **kwargs):
     cache.set("rank_updated_at", datetime.utcnow())

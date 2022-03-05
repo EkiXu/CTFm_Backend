@@ -39,6 +39,10 @@ class Team(models.Model):
             }
             members.append(userInfo)
         return members
+    @property
+    def member_amount(self):
+        amount = self.user_set.all().count()
+        return amount
 
     @property
     def solved_amount(self) -> int:

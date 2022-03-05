@@ -37,7 +37,7 @@ python manager.py createsuperuser
 - [x] Basic User Profile
 - [x] Scoreboard & TrendChart
 - [x] ChangePassword
-- [X] Notification Manage
+- [x] Notification Manage
 - [x] Realtime Notification
 - [x] Dynamic Challenge Score Support
 - [x] Boardcast TOP3 Socrer via Websocket
@@ -46,3 +46,7 @@ python manager.py createsuperuser
 
 
 **Under Construction**
+
+## Thanks
+
+CTFd_Whale

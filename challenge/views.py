@@ -16,6 +16,9 @@ from challenge import serializers
 from challenge import throttles
 from challenge import utils
 from challenge import permissions
+from challenge import models
+from dynamic.control_utils import ControlUtil
+from dynamic.serializers import BaseChallengeContainerSerializer
 
 from contest.utils import contest_began_or_forbbiden,in_contest_time_or_forbbiden
 
@@ -154,7 +157,42 @@ class ChallengeViewSet(viewsets.ReadOnlyModelViewSet):
     @action(detail=True,methods=['GET','POST','DELETE'],url_name='manage_environment',url_path='env')
     @contest_began_or_forbbiden
     def manage_container(self,request,pk=None,*args,**kwargs):
-        return Response("developing")
+        """
+        Retrive, Create, Renew  and Delete Dynamic Container
+        """
+        challenge:models.Challenge = self.get_object()
+        user = request.user
+        containerSerializer = BaseChallengeContainerSerializer
+        if not challenge.have_dynamic_container:
+            return Response(data={"detail":"Challenge do not support Dynamic Container"},status=status.HTTP_400_BAD_REQUEST)
+
+        if request.method == 'GET':
+            try:
+                container = ControlUtil.get_user_container(user,challenge)
+                serializer = containerSerializer(instance=container)
+                return Response(serializer.data,status=status.HTTP_200_OK)
+            except Exception as e:
+                return Response(data={"detail":"Server Error"},status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        elif request.method == 'POST':
+            try:
+                container = ControlUtil.add_user_container(user,challenge)
+                serializer = containerSerializer(instance=container)
+                return Response(serializer.data,status=status.HTTP_201_CREATED)
+            except Exception as e:
+                return Response(data={"detail":"Server Error"},status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        elif request.method == 'PUT':
+            try:
+                container = ControlUtil.renew_user_container(user,challenge)
+                serializer = containerSerializer(instance=container)
+                return Response(serializer.data,status=status.HTTP_202_ACCEPTED)
+            except Exception as e:
+                return Response(data={"detail":"Server Error"},status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        elif request.method == 'DELETE':
+            try:
+                ControlUtil.remove_container(user,challenge)
+                return Response(serializer.data,status=status.HTTP_202_ACCEPTED)
+            except Exception as e:
+                return Response(data={"detail":"Server Error"},status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class AdminChallengeViewSet(viewsets.ModelViewSet):
