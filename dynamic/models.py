@@ -21,3 +21,9 @@ class ChallengeContainer(models.Model):
          editable = False)
     port = models.IntegerField(null=True,default=0)
     flag = models.CharField(max_length=512,default="")
+    address = models.CharField(max_length=512,default="")
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['user', 'challenge'], name='unique_attention')
+        ]

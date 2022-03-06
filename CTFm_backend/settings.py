@@ -225,7 +225,7 @@ RESET_PASSWORD_EMAIL_TEMPLATE = 0
 
 ENABLE_SCHOOL_RANKING = False
 SCHOOL_EMAIL_SUFFIX = ''
-
+USER_MAX_CONTAINERS = 1
 
 try:
     from local_settings import *

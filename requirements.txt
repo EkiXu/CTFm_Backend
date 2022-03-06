@@ -10,5 +10,4 @@ channels-redis
 drf_recaptcha
 tencentcloud-sdk-python
 six
-https://hub.fastgit.org/chibisov/drf-extensions/archive/master.zip
-kubernetes
+https://github.com/chibisov/drf-extensions/archive/master.zip

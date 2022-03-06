@@ -2,7 +2,7 @@ from datetime import datetime
 from django.utils import timezone
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.cache import cache
-from rest_framework import viewsets ,status
+from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAdminUser
@@ -10,21 +10,23 @@ from rest_framework.pagination import LimitOffsetPagination
 from rest_framework_extensions.cache.decorators import (cache_response)
 from rest_framework_extensions.mixins import NestedViewSetMixin
 
-
-from challenge.models import Challenge,SolutionDetail,ChallengeCategory
+from challenge.models import Challenge, SolutionDetail, ChallengeCategory
 from challenge import serializers
 from challenge import throttles
 from challenge import utils
 from challenge import permissions
 from challenge import models
-from dynamic.control_utils import ControlUtil
+import dynamic
+from dynamic.control_utils import ControlUtils
 from dynamic.serializers import BaseChallengeContainerSerializer
 
-from contest.utils import contest_began_or_forbbiden,in_contest_time_or_forbbiden
+from contest.utils import contest_began_or_forbbiden, in_contest_time_or_forbbiden
 
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
+
 channel_layer = get_channel_layer()
+
 
 class ChallengeCategoryViewSet(viewsets.ReadOnlyModelViewSet):
     """
@@ -39,12 +41,13 @@ class ChallengeCategoryViewSet(viewsets.ReadOnlyModelViewSet):
     @cache_response(key_func=utils.ChallengeCategoryListKeyConstructor())
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
-    
+
     @contest_began_or_forbbiden
     @cache_response(key_func=utils.ChallengeCategoryObjectKeyConstructor())
     def retrieve(self, request, *args, **kwargs):
         return super().retrieve(request, *args, **kwargs)
-    
+
+
 class AdminChallengeCategoryViewSet(viewsets.ModelViewSet):
     """
     Project viewset automatically provides `list`, `create`, `retrieve`,
@@ -73,37 +76,37 @@ class ChallengeViewSet(viewsets.ReadOnlyModelViewSet):
         categoryName = self.request.query_params.get('categoryName', None)
         if categoryName is not None:
             try:
-                category = ChallengeCategory.objects.get(name__iexact = categoryName)
+                category = ChallengeCategory.objects.get(name__iexact=categoryName)
             except ObjectDoesNotExist:
                 return Challenge.objects.none()
             queryset = queryset.filter(category=category.id)
-        
+
         if self.action == "getFull" or self.action == "getFullDetail" or self.action == "update":
             return queryset
         return queryset.filter(is_hidden=False)
-    
+
     def get_throttles(self):
         if self.action == "checkFlag":
             throttle_classes = [throttles.TenPerMinuteUserThrottle]
-        else: 
+        else:
             throttle_classes = []
         return [throttle() for throttle in throttle_classes]
 
     def get_serializer_class(self):
         if self.action == "list":
             return serializers.ChallengeSerializer
-        elif self.action == 'create' or self.action ==  'update':
+        elif self.action == 'create' or self.action == 'update':
             return serializers.FullChallengeSerializer
         elif self.action == "check_flag":
             return serializers.FlagSerializer
-        else : 
+        else:
             return serializers.ChallengeDetailSerializer
-    
+
     @contest_began_or_forbbiden
     @cache_response(key_func=utils.ChallengeListKeyConstructor())
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
-    
+
     @contest_began_or_forbbiden
     @cache_response(key_func=utils.ChallengeObjectKeyConstructor())
     def retrieve(self, request, *args, **kwargs):
@@ -116,83 +119,85 @@ class ChallengeViewSet(viewsets.ReadOnlyModelViewSet):
         permission_classes = [permissions.IsVerified]
         return [permission() for permission in permission_classes]
 
-
-    @action(detail=True,methods=['POST'],url_name='checkFlag',url_path='_checkFlag')
+    @action(detail=True, methods=['POST'], url_name='checkFlag', url_path='_checkFlag')
     @in_contest_time_or_forbbiden
-    def check_flag(self,request,pk=None,*args,**kwargs):
+    def check_flag(self, request, pk=None, *args, **kwargs):
         challenge = self.get_object()
-        flag = "" 
+        flag = ""
         try:
             flag = request.data['flag']
-            detail = SolutionDetail.objects.get(challenge = challenge, user = request.user)
+            detail = SolutionDetail.objects.get(challenge=challenge, user=request.user)
         except KeyError:
-            return Response({'detail': 'Flag Field is NULL.'},status=status.HTTP_400_BAD_REQUEST)
+            return Response({'detail': 'Flag Field is NULL.'}, status=status.HTTP_400_BAD_REQUEST)
         except ObjectDoesNotExist:
             user = request.user
-            detail = SolutionDetail(challenge = challenge,user = user,team = user.team,solved = False)
-                
-        if detail.solved == True:
-            return Response({'detail': 'Already Solved'},status=status.HTTP_400_BAD_REQUEST)
+            detail = SolutionDetail(challenge=challenge, user=user, team=user.team, solved=False)
+
+        if detail.solved:
+            return Response({'detail': 'Already Solved'}, status=status.HTTP_400_BAD_REQUEST)
         else:
             detail.times += 1
-            
+
             if challenge.flag == flag:
                 user = request.user
                 detail.solved = True
                 detail.save()
                 user.last_point_at = timezone.now()
                 user.save(update_fields=["last_point_at"])
-                
+
                 cache.set("rank_updated_at", datetime.utcnow())
                 cache.set("challenge_points_updated_at", datetime.utcnow())
                 amount = challenge.solved_amount
-                if amount < 3: 
-                    msg = f"Congratulations to [{request.user}] for getting the {utils.challenge_bloods[amount-1]} of [{challenge.title}]"
-                    async_to_sync(channel_layer.group_send)("challenge", {"type": "challenge.message", "message": msg}) 
+                if amount < 3:
+                    msg = f"Congratulations to [{request.user}] for getting the {utils.challenge_bloods[amount - 1]} of [{challenge.title}]"
+                    async_to_sync(channel_layer.group_send)("challenge", {"type": "challenge.message", "message": msg})
                 return Response({'detail': 'Solved Successfully'})
             else:
                 detail.save()
-                return Response({'detail': 'Wrong Flag'},status=status.HTTP_400_BAD_REQUEST)
+                return Response({'detail': 'Wrong Flag'}, status=status.HTTP_400_BAD_REQUEST)
 
-    @action(detail=True,methods=['GET','POST','DELETE'],url_name='manage_environment',url_path='env')
+    @action(detail=True, methods=['GET', 'POST', 'DELETE'], url_name='manage_environment', url_path='env')
     @contest_began_or_forbbiden
-    def manage_container(self,request,pk=None,*args,**kwargs):
+    def manage_container(self, request, pk=None, *args, **kwargs):
         """
         Retrive, Create, Renew  and Delete Dynamic Container
         """
-        challenge:models.Challenge = self.get_object()
+        challenge: models.Challenge = self.get_object()
         user = request.user
         containerSerializer = BaseChallengeContainerSerializer
-        if not challenge.have_dynamic_container:
-            return Response(data={"detail":"Challenge do not support Dynamic Container"},status=status.HTTP_400_BAD_REQUEST)
+        if not challenge.has_dynamic_container:
+            return Response(data={"detail": "Challenge do not support Dynamic Container"},
+                            status=status.HTTP_400_BAD_REQUEST)
 
         if request.method == 'GET':
             try:
-                container = ControlUtil.get_user_container(user,challenge)
+                container = ControlUtils.get_user_challenge_container(user, challenge)
                 serializer = containerSerializer(instance=container)
-                return Response(serializer.data,status=status.HTTP_200_OK)
+                return Response(serializer.data, status=status.HTTP_200_OK)
+            except ObjectDoesNotExist as de:
+                return Response(data={"detail": str(de)}, status=status.HTTP_204_NO_CONTENT)
             except Exception as e:
-                return Response(data={"detail":"Server Error"},status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                return Response(data={"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         elif request.method == 'POST':
             try:
-                container = ControlUtil.add_user_container(user,challenge)
+                container = ControlUtils.add_user_container(user, challenge)
                 serializer = containerSerializer(instance=container)
-                return Response(serializer.data,status=status.HTTP_201_CREATED)
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
             except Exception as e:
-                return Response(data={"detail":"Server Error"},status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                return Response(data={"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         elif request.method == 'PUT':
             try:
-                container = ControlUtil.renew_user_container(user,challenge)
+                container = ControlUtils.renew_user_container(user, challenge)
                 serializer = containerSerializer(instance=container)
-                return Response(serializer.data,status=status.HTTP_202_ACCEPTED)
+                return Response(serializer.data, status=status.HTTP_202_ACCEPTED)
             except Exception as e:
-                return Response(data={"detail":"Server Error"},status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                return Response(data={"detail":  str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         elif request.method == 'DELETE':
             try:
-                ControlUtil.remove_container(user,challenge)
-                return Response(serializer.data,status=status.HTTP_202_ACCEPTED)
+                ControlUtils.remove_user_container(user, challenge)
+                return Response(data={"detail":"delete successfully"}, status=status.HTTP_202_ACCEPTED)
             except Exception as e:
-                return Response(data={"detail":"Server Error"},status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                return Response(data={"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class AdminChallengeViewSet(viewsets.ModelViewSet):
@@ -207,7 +212,7 @@ class AdminChallengeViewSet(viewsets.ModelViewSet):
     def get_serializer_class(self):
         if self.action == "list":
             return serializers.ChallengeSerializer
-        else : 
+        else:
             return serializers.FullChallengeSerializer
 
     def get_queryset(self):
@@ -219,11 +224,12 @@ class AdminChallengeViewSet(viewsets.ModelViewSet):
         categoryName = self.request.query_params.get('categoryName', None)
         if categoryName is not None:
             try:
-                category = ChallengeCategory.objects.get(name = categoryName)
+                category = ChallengeCategory.objects.get(name=categoryName)
             except ObjectDoesNotExist:
                 return Challenge.objects.none()
             queryset = queryset.filter(category=category.id)
         return queryset
 
-class CategoryChallengeViewset(NestedViewSetMixin,ChallengeViewSet):
+
+class CategoryChallengeViewset(NestedViewSetMixin, ChallengeViewSet):
     pass

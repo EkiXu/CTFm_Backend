@@ -11,11 +11,13 @@ class BaseChallengeContainerSerializer(serializers.BaseSerializer):
     def to_representation(self, instance:models.ChallengeContainer):
         return {
             'uuid': instance.uuid,
+            'address':instance.address,
+            'protocol': instance.challenge.protocol,
             'port': instance.port,
-            'user': instance.user,
-            'challenge': instance.challenge,
+            'user': instance.user.id,
+            'challenge': instance.challenge.id,
             'status': instance.status,
-            'renew_count':instance.renew_count,
+            'start_time':instance.start_time,
         }
 class FullChallengeContainerSerializer(serializers.ModelSerializer):
     class Meta:
