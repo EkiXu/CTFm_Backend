@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from contest.models import Contest
+from contest import models
 
 from user.models import User,Team
 
@@ -12,8 +12,14 @@ class ContestSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("end_time must occur after start_time")
         return data
     class Meta:
-        model = Contest
+        model = models.Contest
         fields = "__all__"
+
+
+class ContestConfigSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.ContestConfig
+        fields = ("key","value")
 
 class ScoreboardSerializer(serializers.ModelSerializer):
     class Meta:

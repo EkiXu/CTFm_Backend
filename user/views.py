@@ -26,7 +26,7 @@ def logout(request):
     try:
         token = RefreshToken(request.data['token'])
         token.blacklist()
-        return Response({"detail":"block successfully"},status=status.HTTP_200_OK)
+        return Response({"detail":"logout successfully"},status=status.HTTP_200_OK)
     except Exception:
         return Response(status=status.HTTP_400_BAD_REQUEST)
     

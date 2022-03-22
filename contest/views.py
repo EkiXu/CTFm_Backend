@@ -7,7 +7,7 @@ from django.contrib.auth import get_user_model
 from django.db.models import Q, query
 from django.conf import settings
 
-from rest_framework.generics import ListAPIView
+from rest_framework.generics import ListAPIView,GenericAPIView
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -36,6 +36,27 @@ class ContestManager(APIView):
         serializer = self.serializer_class(contest)
         return Response(serializer.data)
 
+
+class AdminContestConfigView(GenericAPIView):
+    serializer_class = serializers.ContestConfigSerializer
+    queryset = models.ContestConfig.objects.all()
+    permission_classes = [IsAdminUser]
+    def post(self, request, *args, **kwargs):
+        data:dict = request.data
+        ret = {}
+        for key,value in data.items():
+            obj, created = models.ContestConfig.objects.update_or_create(
+                key = key,
+                defaults={"key":key,"value":value}
+            )
+            ret[obj.key]=obj.value
+        return Response(ret, status=status.HTTP_200_OK)
+    def get(self, request, *args, **kwargs):
+        configs = models.WhaleConfig.objects.all()
+        ret = {}
+        for each in configs:
+            ret[each.key] = each.value
+        return Response(ret, status=status.HTTP_200_OK) 
 
 class AdminContestManager(APIView):
     """

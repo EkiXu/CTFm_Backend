@@ -11,18 +11,17 @@ class Migration(migrations.Migration):
 
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ('challenge', '0002_initial'),
+        ('dynamic', '0001_initial'),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='solutiondetail',
+            model_name='challengecontainer',
             name='user',
             field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL),
         ),
-        migrations.AddField(
-            model_name='challenge',
-            name='category',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='challenges', to='challenge.challengecategory'),
+        migrations.AddConstraint(
+            model_name='challengecontainer',
+            constraint=models.UniqueConstraint(fields=('user', 'challenge'), name='unique_attention'),
         ),
     ]

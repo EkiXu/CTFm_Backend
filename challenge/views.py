@@ -16,8 +16,10 @@ from challenge import throttles
 from challenge import utils
 from challenge import permissions
 from challenge import models
-import dynamic
 from dynamic.control_utils import ControlUtils
+from dynamic.models import ChallengeContainer
+from dynamic.redis_utils import RedisUtils
+from dynamic.db_utils import DBUtils
 from dynamic.serializers import BaseChallengeContainerSerializer
 
 from contest.utils import contest_began_or_forbbiden, in_contest_time_or_forbbiden
@@ -35,7 +37,7 @@ class ChallengeCategoryViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = ChallengeCategory.objects.all()
     serializer_class = serializers.ChallengeCategorySerializer
     pagination_class = LimitOffsetPagination
-    permission_classes = [permissions.IsVerified]
+    permission_classes = [permissions.IsVerifiedAndInTeam]
 
     @contest_began_or_forbbiden
     @cache_response(key_func=utils.ChallengeCategoryListKeyConstructor())
@@ -81,12 +83,12 @@ class ChallengeViewSet(viewsets.ReadOnlyModelViewSet):
                 return Challenge.objects.none()
             queryset = queryset.filter(category=category.id)
 
-        if self.action == "getFull" or self.action == "getFullDetail" or self.action == "update":
-            return queryset
+        # if self.action == "getFull" or self.action == "getFullDetail" or self.action == "update":
+        #     return queryset
         return queryset.filter(is_hidden=False)
 
     def get_throttles(self):
-        if self.action == "checkFlag":
+        if self.action == "check_action" or self.action:
             throttle_classes = [throttles.TenPerMinuteUserThrottle]
         else:
             throttle_classes = []
@@ -116,7 +118,7 @@ class ChallengeViewSet(viewsets.ReadOnlyModelViewSet):
         """
         Instantiates and returns the list of permissions that this view requires.
         """
-        permission_classes = [permissions.IsVerified]
+        permission_classes = [permissions.IsVerifiedAndInTeam]
         return [permission() for permission in permission_classes]
 
     @action(detail=True, methods=['POST'], url_name='checkFlag', url_path='_checkFlag')
@@ -149,55 +151,131 @@ class ChallengeViewSet(viewsets.ReadOnlyModelViewSet):
                 cache.set("challenge_points_updated_at", datetime.utcnow())
                 amount = challenge.solved_amount
                 if amount < 3:
-                    msg = f"Congratulations to [{request.user}] for getting the {utils.challenge_bloods[amount - 1]} of [{challenge.title}]"
-                    async_to_sync(channel_layer.group_send)("challenge", {"type": "challenge.message", "message": msg})
+                    detail = f"Congratulations to [{request.user}] for getting the {utils.challenge_bloods[amount - 1]} of [{challenge.title}]"
+                    async_to_sync(channel_layer.group_send)("challenge", {"type": "challenge.message", "message": detail})
                 return Response({'detail': 'Solved Successfully'})
             else:
                 detail.save()
                 return Response({'detail': 'Wrong Flag'}, status=status.HTTP_400_BAD_REQUEST)
+    
+    def get_container(self,request,challenge:models.Challenge,pk=None,*args,**kwargs):
+        user = request.user
+        try:
+            container = ControlUtils.get_user_challenge_container(user, challenge)
+            if container == None:
+                return Response(data={"detail": "No Container"}, status=status.HTTP_204_NO_CONTENT)
+            serializer = BaseChallengeContainerSerializer(instance=container)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response(data={"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            
 
-    @action(detail=True, methods=['GET', 'POST', 'DELETE'], url_name='manage_environment', url_path='env')
+    def add_container(self,request,challenge:models.Challenge,pk=None,*args,**kwargs):
+        user = request.user
+        redis_util = RedisUtils(user.id)
+
+        if not redis_util.acquire_lock():
+            return Response(data={'detail': 'Request Too Fast!'},status=status.HTTP_400_BAD_REQUEST)
+
+        configs = DBUtils.get_all_configs()
+
+        if int(configs.get("user_max_container_count","2")) <= user.container_count:
+            return Response(data={'detail': 'Your max container count exceed.'},status=status.HTTP_400_BAD_REQUEST)
+        
+        current_count = DBUtils.get_all_alive_container_count()
+        if int(configs.get("docker_max_container_count","2000")) <= int(current_count):
+            return Response(data={'detail': 'Server max container count exceed.'},status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        flag = ControlUtils.gen_random_flag()
+        container:ChallengeContainer
+        if challenge.protocol == Challenge.HTTP:
+            container = ControlUtils.add_user_container(user.id, challenge.id, flag=flag)
+        else:
+            port = redis_util.get_available_port()
+            container = ControlUtils.add_user_container(user.id, challenge.id, flag=flag, port=port)
+
+        redis_util.release_lock()
+
+        serializer = BaseChallengeContainerSerializer(instance=container)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    def renew_container(self,request,challenge:models.Challenge,pk=None,*args,**kwargs):
+        user = request.user
+        redis_util = RedisUtils(user.id)
+        if not redis_util.acquire_lock():
+            return Response(data={'success': False, 'detail': 'Request Too Fast!'},status=status.HTTP_400_BAD_REQUEST)
+
+        configs = DBUtils.get_all_configs()
+        
+        docker_max_renew_count = int(configs.get("docker_max_renew_count"))
+        container = ControlUtils.get_user_challenge_container(user,challenge)
+        if container is None:
+            return Response(data={'success': False, 'detail': 'Instance not found.'},status=status.HTTP_204_NO_CONTENT)
+        if container.renew_count >= docker_max_renew_count:
+            return Response(data={'success': False, 'detail': 'Max renewal times exceed.'})
+        
+        ControlUtils.renew_user_challenge_container(user.id, challenge.id)
+        redis_util.release_lock()
+        return Response(data={'success': True})
+
+    def delete_container(self,request,challenge:models.Challenge,pk=None,*args,**kwargs):
+        user = request.user
+        redis_util = RedisUtils(user.id)
+        if not redis_util.acquire_lock():
+            return Response(data={'success': False, 'detail': 'Request Too Fast!'})
+
+        if ControlUtils.remove_user_challenge_container(user.id,challenge.id):
+            redis_util.release_lock()
+
+            return Response(data={'success': True})
+        else:
+            return Response(data={'success': False, 'detail': 'Failed when destroy instance, please contact admin!'})
+
+    @action(detail=True, methods=['GET', 'POST','PATCH', 'DELETE'], url_name='manage_environment', url_path='env')
     @contest_began_or_forbbiden
     def manage_container(self, request, pk=None, *args, **kwargs):
         """
         Retrive, Create, Renew  and Delete Dynamic Container
         """
         challenge: models.Challenge = self.get_object()
-        user = request.user
-        containerSerializer = BaseChallengeContainerSerializer
         if not challenge.has_dynamic_container:
             return Response(data={"detail": "Challenge do not support Dynamic Container"},
                             status=status.HTTP_400_BAD_REQUEST)
 
         if request.method == 'GET':
-            try:
-                container = ControlUtils.get_user_challenge_container(user, challenge)
-                serializer = containerSerializer(instance=container)
-                return Response(serializer.data, status=status.HTTP_200_OK)
-            except ObjectDoesNotExist as de:
-                return Response(data={"detail": str(de)}, status=status.HTTP_204_NO_CONTENT)
-            except Exception as e:
-                return Response(data={"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            # try:
+            #     container = ControlUtils.get_user_challenge_container(user, challenge)
+            #     serializer = containerSerializer(instance=container)
+            #     return Response(serializer.data, status=status.HTTP_200_OK)
+            # except ObjectDoesNotExist as de:
+            #     return Response(data={"detail": str(de)}, status=status.HTTP_204_NO_CONTENT)
+            # except Exception as e:
+            #     return Response(data={"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return self.get_container(request,challenge,pk,*args, **kwargs)
         elif request.method == 'POST':
-            try:
-                container = ControlUtils.add_user_container(user, challenge)
-                serializer = containerSerializer(instance=container)
-                return Response(serializer.data, status=status.HTTP_201_CREATED)
-            except Exception as e:
-                return Response(data={"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        elif request.method == 'PUT':
-            try:
-                container = ControlUtils.renew_user_container(user, challenge)
-                serializer = containerSerializer(instance=container)
-                return Response(serializer.data, status=status.HTTP_202_ACCEPTED)
-            except Exception as e:
-                return Response(data={"detail":  str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            # try:
+            #     container = ControlUtils.add_user_container(user, challenge)
+            #     serializer = containerSerializer(instance=container)
+            #     return Response(serializer.data, status=status.HTTP_201_CREATED)
+            # except Exception as e:
+            #     raise e
+            #     return Response(data={"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return self.add_container(request,challenge,pk,*args, **kwargs)
+        elif request.method == 'PATCH':
+            return self.renew_container(request,challenge,pk,*args, **kwargs)
+            # try:
+            #     container = ControlUtils.renew_user_container(user, challenge)
+            #     serializer = containerSerializer(instance=container)
+            #     return Response(serializer.data, status=status.HTTP_202_ACCEPTED)
+            # except Exception as e:
+            #     return Response(data={"detail":  str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         elif request.method == 'DELETE':
-            try:
-                ControlUtils.remove_user_container(user, challenge)
-                return Response(data={"detail":"delete successfully"}, status=status.HTTP_202_ACCEPTED)
-            except Exception as e:
-                return Response(data={"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return self.delete_container(request,challenge,pk,*args, **kwargs)
+            # try:
+            #     ControlUtils.remove_user_container(user, challenge)
+            #     return Response(data={"detail":"delete successfully"}, status=status.HTTP_202_ACCEPTED)
+            # except Exception as e:
+            #     return Response(data={"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class AdminChallengeViewSet(viewsets.ModelViewSet):

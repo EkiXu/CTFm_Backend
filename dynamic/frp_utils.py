@@ -2,9 +2,9 @@
 
 import requests
 
-from .db_utils import DBUtils
-from .models import ChallengeDocker
-
+from dynamic.db_utils import DBUtils
+from challenge.models import Challenge
+from dynamic import models
 
 class FrpUtils:
     @staticmethod
@@ -35,22 +35,23 @@ class FrpUtils:
                           "local_port = %s\n" + \
                           "remote_port = %s\n" + \
                           "use_compression = true"
-
+        c:models.ChallengeContainer
         for c in containers:
-            dynamic_docker_challenge = ChallengeDocker.objects \
-                .filter(id = c.challenge_id)
+            dynamic_docker_challenge:Challenge = c.challenge
 
-            if dynamic_docker_challenge.redirect_type == 'http':
+            if dynamic_docker_challenge.protocol == Challenge.HTTP:
                 output += http_template % (
-                    str(c.user_id) + '-' + c.uuid, str(c.user_id) + '-' + c.uuid,
+                    str(c.user_id) + '-' + str(c.uuid), str(c.user_id) + '-' + str(c.uuid),
                     dynamic_docker_challenge.redirect_port, c.uuid + domain)
-            else:
+            elif dynamic_docker_challenge.protocol == Challenge.TCP:
                 output += direct_template % (
-                    str(c.user_id) + '-' + c.uuid, str(c.user_id) + '-' + c.uuid,
+                    str(c.user_id) + '-' + str(c.uuid), str(c.user_id) + '-' + str(c.uuid),
                     dynamic_docker_challenge.redirect_port, c.port,
-                    str(c.user_id) + '-' + c.uuid, str(c.user_id) + '-' + c.uuid,
+                    str(c.user_id) + '-' + str(c.uuid), str(c.user_id) + '-' + str(c.uuid),
                     dynamic_docker_challenge.redirect_port, c.port)
 
         requests.put("http://" + configs.get("frp_api_ip") + ":" + configs.get("frp_api_port") + "/api/config", output,
                      timeout=5)
+        
         requests.get("http://" + configs.get("frp_api_ip") + ":" + configs.get("frp_api_port") + "/api/reload", timeout=5)
+        

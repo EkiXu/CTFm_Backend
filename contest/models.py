@@ -12,6 +12,12 @@ class Contest(models.Model):
     description = models.TextField(null=True)
 
 
+class ContestConfig(models.Model):
+    key = models.CharField(primary_key=True,max_length=128)
+    value = models.TextField()
+    
+
+
 def change_contest_updated_at(sender=None, instance=None, *args, **kwargs):
     cache.set("contest_updated_at", datetime.utcnow())
 

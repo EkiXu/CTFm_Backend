@@ -1,23 +1,23 @@
-# Refer CTFd_Whale
 import json
 import random
 import traceback
-from typing import Tuple
 import uuid
 from collections import OrderedDict
 import docker
-from .db_utils import DBUtils
+from dynamic.db_utils import DBUtils
 from challenge.models import Challenge
-from .redis_utils import RedisUtils
+from dynamic.redis_utils import RedisUtils
 
 
 class DockerUtils:
 
     @staticmethod
-    def add_new_docker_container(user, challenge:Challenge, flag, uuid_code) -> Tuple[str,int]:
+    def add_new_docker_container(user_id, challenge_id, flag, uuid_code):
         configs = DBUtils.get_all_configs()
+        uuid_code = str(uuid_code)
 
-        dynamic_docker_challenge = challenge
+        dynamic_docker_challenge = Challenge.objects \
+            .get(id = challenge_id) 
 
         dns = configs.get("docker_dns", "").split(",")
         nodes = configs.get("docker_swarm_nodes", "").split(",")
@@ -30,17 +30,17 @@ class DockerUtils:
                 linux_nodes.append(node)
 
         client = docker.DockerClient(base_url=configs.get("docker_api_url"))
-        if dynamic_docker_challenge.docker_image.startswith("{"):
+        if dynamic_docker_challenge.image.startswith("{"):
             images = json.loads(dynamic_docker_challenge.image, object_pairs_hook=OrderedDict)
 
-            range_prefix = RedisUtils.get_available_network_range()
+            redis_util = RedisUtils()
+            range_prefix = redis_util.get_available_network_range()
 
             ipam_pool = docker.types.IPAMPool(
                 subnet=range_prefix
             )
-
             ipam_config = docker.types.IPAMConfig(driver='default', pool_configs=[ipam_pool])
-            network_name = str(user.id) + '-' + uuid_code
+            network_name = str(user_id) + '-' + uuid_code
             network = client.networks.create(network_name, internal=True, ipam=ipam_config, attachable=True,
                                              labels={'prefix': range_prefix}, driver="overlay", scope="swarm")
 
@@ -60,7 +60,7 @@ class DockerUtils:
             for name in images:
                 if not has_processed_main:
                     image = images[name]
-                    container_name = str(user.id) + '-' + uuid_code
+                    container_name = str(user_id) + '-' + uuid_code
 
                     node = DockerUtils.choose_node(image, win_nodes, linux_nodes)
 
@@ -72,14 +72,14 @@ class DockerUtils:
                                                    dynamic_docker_challenge.memory_limit),
                                                cpu_limit=int(
                                                    dynamic_docker_challenge.cpu_limit * 1e9)),
-                                           labels={str(user.id) + '-' + uuid_code: str(user.id) + '-' + uuid_code},
+                                           labels={str(user_id) + '-' + uuid_code: str(user_id) + '-' + uuid_code},
                                            hostname=name, constraints=['node.labels.name==' + node],
                                            endpoint_spec=docker.types.EndpointSpec(mode='dnsrr', ports={}))
                     has_processed_main = True
                     continue
 
                 image = images[name]
-                container_name = str(user.id) + '-' + str(uuid.uuid4())
+                container_name = str(user_id) + '-' + str(uuid.uuid4())
                 client.services.create(image=image, name=container_name, networks=[
                     docker.types.NetworkAttachmentConfig(network_name, aliases=[name])],
                                        env={'FLAG': flag}, dns_config=docker.types.DNSConfig(nameservers=dns),
@@ -87,14 +87,14 @@ class DockerUtils:
                                            dynamic_docker_challenge.memory_limit),
                                            cpu_limit=int(
                                                dynamic_docker_challenge.cpu_limit * 1e9)),
-                                       labels={str(user.id) + '-' + uuid_code: str(user.id) + '-' + uuid_code},
+                                       labels={str(user_id) + '-' + uuid_code: str(user_id) + '-' + uuid_code},
                                        hostname=name, constraints=['node.labels.name==' + node],
                                        endpoint_spec=docker.types.EndpointSpec(mode='dnsrr', ports={}))
 
         else:
-            node = DockerUtils.choose_node(dynamic_docker_challenge.docker, win_nodes, linux_nodes)
+            node = DockerUtils.choose_node(dynamic_docker_challenge.image, win_nodes, linux_nodes)
 
-            client.services.create(image=dynamic_docker_challenge.docker, name=str(user.id) + '-' + uuid_code,
+            client.services.create(image=dynamic_docker_challenge.image, name=str(user_id) + '-' + uuid_code,
                                    env={'FLAG': flag}, dns_config=docker.types.DNSConfig(nameservers=dns),
                                    networks=[configs.get("docker_auto_connect_network", "ctfd_frp-containers")],
                                    resources=docker.types.Resources(mem_limit=DockerUtils.convert_readable_text(
@@ -135,9 +135,9 @@ class DockerUtils:
         return 0
 
     @staticmethod
-    def remove_current_docker_container(app, user, is_retry=False):
+    def remove_user_challenge_container(user_id,challenge_id, is_retry=False):
         configs = DBUtils.get_all_configs()
-        container = DBUtils.get_current_containers(user=user)
+        container = DBUtils.get_user_challenge_container(user_id=user_id,challenge_id=challenge_id)
 
         auto_containers = configs.get("docker_auto_connect_containers", "").split(",")
 
@@ -146,15 +146,15 @@ class DockerUtils:
 
         try:
             client = docker.DockerClient(base_url=configs.get("docker_api_url"))
-            networks = client.networks.list(names=[str(user.id) + '-' + container.uuid])
+            networks = client.networks.list(names=[str(user_id) + '-' + str(container.uuid)])
 
             if len(networks) == 0:
-                services = client.services.list(filters={'name': str(user.id) + '-' + container.uuid})
+                services = client.services.list(filters={'name': str(user_id) + '-' + str(container.uuid)})
                 for s in services:
                     s.remove()
             else:
-                redis_util = RedisUtils(app)
-                services = client.services.list(filters={'label': str(user.id) + '-' + container.uuid})
+                redis_util = RedisUtils()
+                services = client.services.list(filters={'label': str(user_id) + '-' + str(container.uuid)})
                 for s in services:
                     s.remove()
 
@@ -162,13 +162,14 @@ class DockerUtils:
                     for ac in auto_containers:
                         try:
                             n.disconnect(ac, force=True)
-                        except:
+                        except Exception as e:
                             pass
                     n.remove()
                     redis_util.add_available_network_range(n.attrs['Labels']['prefix'])
-        except:
+            return True
+        except Exception as e:
             traceback.print_exc()
             if not is_retry:
-                DockerUtils.remove_current_docker_container(app, user.id, True)
-
-        return True
+                return DockerUtils.remove_user_challenge_container(user_id,challenge_id, True)
+            return False
+        

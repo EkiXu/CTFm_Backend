@@ -81,6 +81,7 @@ class RegisterSerializer(serializers.ModelSerializer):
                 username = validated_data['username'],
                 email = validated_data['email'],
                 nickname = validated_data['nickname'],
+                is_verified = True,
             )
             user.set_password(validated_data['password'])
             user.save()

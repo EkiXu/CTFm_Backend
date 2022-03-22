@@ -11,7 +11,7 @@ from rest_framework_extensions.key_constructor.bits import (
 )
 from rest_framework_extensions.key_constructor.constructors import DefaultKeyConstructor
 
-from contest.models import Contest
+from contest import models
 
 
 class UpdatedAtKeyBit(KeyBitBase):
@@ -42,7 +42,7 @@ class TopTenTrendKeyConstructor(DefaultKeyConstructor):
 def IsAfterContest():
     current_time = timezone.now()
     try:
-        contest = Contest.objects.first()
+        contest = models.Contest.objects.first()
         return current_time > contest.end_time 
     except (ObjectDoesNotExist,TypeError):
         return True
@@ -50,7 +50,7 @@ def IsAfterContest():
 def IsBeforeContest():
     current_time = timezone.now()
     try:
-        contest = Contest.objects.first()
+        contest = models.Contest.objects.first()
         return  current_time < contest.start_time
     except (ObjectDoesNotExist,TypeError):
         return True
@@ -72,3 +72,26 @@ def in_contest_time_or_forbbiden(func):
             return Response({"detail":"Contest is over"},status=status.HTTP_423_LOCKED)
         return func(*args, **kw)
     return wrapper
+
+
+def get_all_contest_configs():
+    configs = models.ContestConfig.objects.all()
+    result = {}
+
+    for c in configs:
+        result[str(c.key)] = str(c.value)
+
+    return result
+
+def get_contest_config_value(key:str,default:str=None):
+    
+    config:models.ContestConfig 
+    try:
+        config = models.ContestConfig.objects.get(key=key)
+    except ObjectDoesNotExist as e:
+        if default!=None:
+            return default
+        else:
+            raise e
+    return config.value
+        

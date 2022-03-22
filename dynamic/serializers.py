@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
 from dynamic import models
+from dynamic.db_utils import DBUtils
 
 class WhaleConfigSerializer(serializers.ModelSerializer):
     class Meta:
@@ -9,9 +10,13 @@ class WhaleConfigSerializer(serializers.ModelSerializer):
 
 class BaseChallengeContainerSerializer(serializers.BaseSerializer):
     def to_representation(self, instance:models.ChallengeContainer):
+        host = instance.host
+        if host == "" or host == None:
+            host = DBUtils.get_config("frp_direct_ip_address")
+        
         return {
-            'uuid': instance.uuid,
-            'address':instance.address,
+            'uuid': str(instance.uuid),
+            'host':host,
             'protocol': instance.challenge.protocol,
             'port': instance.port,
             'user': instance.user.id,

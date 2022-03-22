@@ -1,4 +1,4 @@
-version: "3.8"
+version: "3"
 services:
   db:
     image: postgres
@@ -6,26 +6,78 @@ services:
       - POSTGRES_DB=ctfm
       - POSTGRES_USER=ctfm
       - POSTGRES_PASSWORD=ctfm
-    expose: 
+    expose:
       - 5432
     ports:
       - "28432:5432"
+    networks:
+      internal:
   redis:
     image: redis
     command: redis-server --requirepass redispassword
     expose:
-        - 6379
+      - 6379
+    networks:
+      internal:
   ctfm:
     image: ctfm
     build: "."
+    user: root
     volumes:
       - .:/backend
+      - /var/run/docker.sock:/var/run/docker.sock
     restart: always
     ports:
       - "28082:8086"
-    environment: 
+    environment:
       - SECRET_KEY="Test"
     depends_on:
-      - migration
       - db
       - redis
+    networks:
+      default:
+      internal:
+      frp:
+        ipv4_address: 172.1.0.2
+  frpc:
+    image: glzjin/frp:latest
+    restart: always
+    volumes:
+      - ./script:/conf/
+    depends_on:
+      - frps
+    entrypoint:
+      - /usr/local/bin/frpc
+      - -c
+      - /conf/frpc.ini
+    networks:
+      frp:
+        ipv4_address: 172.1.0.3
+      frp_containers:
+
+  frps:
+    image: glzjin/frp:latest
+    restart: always
+    volumes:
+      - ./script:/conf/
+    entrypoint:
+      - /usr/local/bin/frps
+      - -c
+      - /conf/frps.ini
+    network_mode: host
+
+networks:
+  default:
+  internal:
+    internal: true
+  frp:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.1.0.0/16
+  frp_containers:
+    driver: overlay
+    internal: true
+    ipam:
+      config:
+        - subnet: 172.2.0.0/16

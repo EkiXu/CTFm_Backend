@@ -11,3 +11,5 @@ drf_recaptcha
 tencentcloud-sdk-python
 six
 https://github.com/chibisov/drf-extensions/archive/master.zip
+docker
+django-crontab

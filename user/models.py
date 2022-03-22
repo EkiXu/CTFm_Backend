@@ -25,7 +25,7 @@ class User(AbstractUser):
         all_solved_challenge = SolutionDetail.objects.filter(user=self).filter(solved=True).filter(challenge__is_hidden=False)
         solved_challenge:SolutionDetail
         for solved_challenge in all_solved_challenge:
-            value = value+ solved_challenge.challenge.points
+            value = value + solved_challenge.challenge.points
         return value
 
     @property
@@ -44,9 +44,9 @@ class User(AbstractUser):
         return amount
 
     @property
-    def container_amount(self):
-        amount = ChallengeContainer.objects.filter(user = self).count()
-        return amount
+    def container_count(self):
+        count = ChallengeContainer.objects.filter(user = self).count()
+        return count
 
 
 def change_rank_updated_at(sender=None, instance=None, *args, **kwargs):

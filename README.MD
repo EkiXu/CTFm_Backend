@@ -31,6 +31,18 @@ python manager.py migrate
 python manager.py createsuperuser 
 ```
 
+## reCAPTCHA Config
+
+register yourself and obtain your reCAPTCHA credentials at https://www.google.com/recaptcha/admin.
+
+Finally, copy/paste your Google reCAPTCHA secret key to the DRF_RECAPTCHA_SECRET_KEY setting:
+
+```py
+#CTFm_backend/local_settings.py
+DRF_RECAPTCHA_SECRET_KEY = "<your_reCAPTCHA_secret_key>"
+
+```
+
 ## Todo
 
 - [x] Basic Challenge Manage
@@ -42,11 +54,11 @@ python manager.py createsuperuser
 - [x] Dynamic Challenge Score Support
 - [x] Boardcast TOP3 Socrer via Websocket
 - [ ] Dynamic Docker Challenge Support
-- [ ] Team Support
+- [x] Team Support
 
 
 **Under Construction**
 
 ## Thanks
 
-CTFd_Whale
+[CTFd_Whale](https://github.com/glzjin/CTFd-Whale)

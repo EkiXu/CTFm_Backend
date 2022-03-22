@@ -7,6 +7,7 @@ from rest_framework.pagination import LimitOffsetPagination
 
 from dynamic import serializers
 from dynamic import models
+from dynamic.redis_utils import RedisUtils
 from rest_framework import status
 
 
@@ -27,6 +28,8 @@ class UpdateWhaleConfigView(GenericAPIView):
                 defaults={"key":key,"value":value}
             )
             ret[obj.key]=obj.value
+        redis_util = RedisUtils()
+        redis_util.init_redis_port_sets()
         return Response(ret, status=status.HTTP_200_OK)
     def get(self, request, *args, **kwargs):
         configs = models.WhaleConfig.objects.all()

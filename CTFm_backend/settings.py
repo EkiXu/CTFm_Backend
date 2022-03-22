@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django_crontab',
     'rest_framework',
     'challenge.apps.ChallengeConfig',
     'user.apps.UserConfig',
@@ -211,8 +212,12 @@ SIMPLE_JWT = {
     'SLIDING_TOKEN_REFRESH_LIFETIME': timedelta(days=7),
 }
 
+CRONJOBS = [
+    ('0/10 * * * *', 'dynamic.cron.auto_clean_container')
+]
+
 DRF_RECAPTCHA_SECRET_KEY = ""
-DRF_RECAPTCHA_DOMAIN = ""
+DRF_RECAPTCHA_DOMAIN = "www.recaptcha.net"
 
 # EMAIL VALIDATION
 ENABLE_EMAIL_VALIDATION = False

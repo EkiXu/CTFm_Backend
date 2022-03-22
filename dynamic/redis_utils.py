@@ -1,14 +1,15 @@
 # Refer CTFd_Whale
 
 import ipaddress
+from django_redis import get_redis_connection
 from redis.exceptions import LockError
-from .db_utils import DBUtils
 import docker
-from django.core.cache import cache
+from redis.client import Redis
+from dynamic.db_utils import DBUtils
 
 class RedisUtils:
     def __init__(self, user_id=0):
-        self.redis_client = cache
+        self.redis_client:Redis = get_redis_connection("default")
         self.key = 'ctfd_whale_lock-' + str(user_id)
         self.lock = None
         self.global_port_key = "ctfd_whale-port-set"
@@ -25,7 +26,7 @@ class RedisUtils:
         for container in containers:
             if container.port != 0:
                 used_port_list.append(container.port)
-        for port in range(int(configs.get("frp_direct_port_minimum", 29000)), int(configs.get("frp_direct_port_maximum", 28000)) + 1):
+        for port in range(int(configs.get("frp_direct_port_minimum", 28000)), int(configs.get("frp_direct_port_maximum", 29000)) + 1):
             if port not in used_port_list:
                 self.add_available_port(port)
 
