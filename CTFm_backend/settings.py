@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/3.1/ref/settings/
 
 from pathlib import Path
 from datetime import timedelta
+from os import getenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -21,7 +22,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/3.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "MODIFIY_IT_YOURSELF!"
+SECRET_KEY = getenv("SECRET_KEY","MODIFIY_IT_YOURSELF!")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -87,20 +88,20 @@ WSGI_APPLICATION = 'CTFm_backend.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'ctfm',
-        'USER': 'ctfm',
-        'PASSWORD': 'ctfm',
-        'HOST': 'db',
-        'PORT': '5432',
+        'NAME': getenv("DB_NAME","ctfm"),
+        'USER': getenv("DB_USER","ctfm"),
+        'PASSWORD': getenv("DB_PASSWORD","password"),
+        'HOST': getenv("DB_HOST","db"),
+        'PORT': getenv("DB_PORT","5432"),
     }
 }
 
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": "redis://redis:6379",
+        "LOCATION": "redis://"+getenv("REDIS_HOST","redis")+":"+getenv("REDIS_PORT","6379"),
         "OPTIONS": {
-            "PASSWORD":"redispassword",
+            "PASSWORD":getenv("REDIS_PASSWORD","redispassord"),
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
         }
     }
@@ -116,7 +117,7 @@ CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
-            "hosts": [("redis://:redispassword@redis:6379/0")],
+            "hosts": [("redis://:"+getenv("REDIS_PASSWORD","redispassword")+"@"+getenv("REDIS_HOST","redis")+":"+getenv("REDIS_PORT","6379")+"/0")],
         },
     },
 }

@@ -30,7 +30,11 @@ services:
     ports:
       - "28082:8086"
     environment:
-      - SECRET_KEY="Test"
+      - SECRET_KEY=MODIFIY_IT_YOURSELF!
+      - DB_NAME=ctfm
+      - DB_USER=ctfm
+      - DB_PASSWORD=ctfm
+      - REDIS_PASSWORD=redispassword
     depends_on:
       - db
       - redis
