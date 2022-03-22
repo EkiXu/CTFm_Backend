@@ -64,12 +64,21 @@ class TeamViewSet(mixins.CreateModelMixin,
                 team = models.Team.objects.get(token=token)
                 user.team = team
                 user.save()
-                return Response(serializers.DetailedTeamSerializer(data=team.value()),status=status.HTTP_200_OK)
+                return Response(serializers.DetailedTeamSerializer(data=team),status=status.HTTP_200_OK)
             except models.Team.DoesNotExist as e:
                 return Response({"detail":f"Token Error"},status=status.HTTP_400_BAD_REQUEST)
         else:
             return Response({"detail":f"Token Error"},status=status.HTTP_400_BAD_REQUEST)
-
+    
+    def destroy(self, request, *args, **kwargs):
+        user = request.user
+        team = self.get_object()
+        if team.leader == user: 
+            return super().destroy(request, *args, **kwargs)
+        else:
+            user.team = None
+            user.save()
+            return Response({"detail":f"Leaved Successfully"},status=status.HTTP_200_OK)
 class AdminTeamViewSet(viewsets.ModelViewSet):
     """
     API endpoint that allows users to be viewed or edited.

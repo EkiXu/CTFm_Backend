@@ -217,8 +217,9 @@ CRONJOBS = [
     ('0/10 * * * *', 'dynamic.cron.auto_clean_container')
 ]
 
-DRF_RECAPTCHA_SECRET_KEY = ""
+
 DRF_RECAPTCHA_DOMAIN = "www.recaptcha.net"
+DRF_RECAPTCHA_SECRET_KEY = ""
 
 # EMAIL VALIDATION
 ENABLE_EMAIL_VALIDATION = False
@@ -234,6 +235,6 @@ SCHOOL_EMAIL_SUFFIX = ''
 USER_MAX_CONTAINERS = 1
 
 try:
-    from local_settings import *
+    from CTFm_backend.local_settings import *
 except ImportError:
     pass

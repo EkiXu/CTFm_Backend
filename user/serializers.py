@@ -94,10 +94,10 @@ class RegisterSerializer(serializers.ModelSerializer):
                 is_verified = False
             )
             user.set_password(validated_data['password'])
-            
+            user.save()
             current_site = get_current_site(self.context['request'])
             utils.sendRegisterValidationEmail(user,current_site=current_site)
-            user.save()
+            
             return user
 
     class Meta:
