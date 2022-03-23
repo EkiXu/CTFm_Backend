@@ -35,7 +35,7 @@ def sendRegisterValidationEmail(user,current_site):
     templateData = {
         "contest_name":contest.name,
         "username": user.username,
-        "sign_up_url":"{0}/activate/{1}/{2}".format(current_site.domain,user.id,account_activation_token.make_token(user))
+        "sign_up_url":"http://{0}/activate/{1}/{2}".format(current_site.domain,user.id,account_activation_token.make_token(user))
     }
 
     req = models.SendEmailRequest()
