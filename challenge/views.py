@@ -126,9 +126,13 @@ class ChallengeViewSet(viewsets.ReadOnlyModelViewSet):
     def check_flag(self, request, pk=None, *args, **kwargs):
         challenge = self.get_object()
         flag = ""
+        team = request.user.team
+        if team == None:
+            return Response({'detail': 'Create or Join A Team to Play The Game.'}, status=status.HTTP_400_BAD_REQUEST)
         try:
             flag = request.data['flag']
-            detail = SolutionDetail.objects.get(challenge=challenge, user=request.user)
+            #detail = SolutionDetail.objects.get(challenge=challenge, user=request.user)
+            detail = SolutionDetail.objects.get(challenge=challenge, team=team)
         except KeyError:
             return Response({'detail': 'Flag Field is NULL.'}, status=status.HTTP_400_BAD_REQUEST)
         except ObjectDoesNotExist:
