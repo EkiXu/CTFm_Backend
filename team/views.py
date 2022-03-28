@@ -44,7 +44,7 @@ class TeamViewSet(mixins.CreateModelMixin,
         Instantiates and returns the list of permissions that this view requires.
         """
         if self.action == 'create' or self.action == 'retrieve' or self.action == "list" or self.action == "joinTeam":
-            permission_classes = []
+            permission_classes = [permissions.IsVerified]
         elif self.action == "update" or self.action == 'destory':
             permission_classes = [permissions.IsLeaderOrAdmin]
         else:

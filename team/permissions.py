@@ -50,3 +50,11 @@ class IsAdmin(permissions.BasePermission):
 
         # Write permissions are only allowed to the owner of the snippet.
         return bool(request.user and request.user.is_staff)
+
+class IsVerified(permissions.BasePermission):
+    """
+    Allows access only to authenticated users.
+    """
+
+    def has_permission(self, request, view):
+        return bool(request.user and request.user.is_active and request.user.is_verified)

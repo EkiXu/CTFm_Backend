@@ -58,6 +58,13 @@ def IsBeforeContest():
 def contest_began_or_forbbiden(func):
     @functools.wraps(func)
     def wrapper(*args, **kw):
+        # admin can bypass
+        try:
+            request = args[1]
+            if request.user.is_staff:
+                return func(*args, **kw)
+        except:
+            pass
         if IsBeforeContest():
             return Response({"detail":"Contest has not yet started"},status=status.HTTP_423_LOCKED)
         return func(*args, **kw)
@@ -66,6 +73,14 @@ def contest_began_or_forbbiden(func):
 def in_contest_time_or_forbbiden(func):
     @functools.wraps(func)
     def wrapper(*args, **kw):
+        # admin can bypass
+        try:
+            request = args[1]
+            if request.user.is_staff:
+                return func(*args, **kw)
+        except:
+            pass
+        #raise Exception(args[0])
         if IsBeforeContest():
             return Response({"detail":"Contest has not yet started"},status=status.HTTP_423_LOCKED)
         if IsAfterContest():
