@@ -4,9 +4,12 @@ djangorestframework-simplejwt
 djangochannelsrestframework
 django-redis
 hiredis
-psycopg2
+psycopg2-binary
 channels
-channels_redis
+channels-redis
 drf_recaptcha
 tencentcloud-sdk-python
 six
+https://github.com/chibisov/drf-extensions/archive/master.zip
+docker
+django-crontab

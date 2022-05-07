@@ -1,6 +1,7 @@
 from rest_framework import serializers
-from contest.models import Contest
-from django.contrib.auth import get_user_model
+from contest import models
+
+from user.models import User,Team
 
 class ContestSerializer(serializers.ModelSerializer):
     def validate(self, data):
@@ -11,14 +12,18 @@ class ContestSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("end_time must occur after start_time")
         return data
     class Meta:
-        model = Contest
+        model = models.Contest
         fields = "__all__"
 
-UserModel = get_user_model()
+
+class ContestConfigSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.ContestConfig
+        fields = ("key","value")
 
 class ScoreboardSerializer(serializers.ModelSerializer):
     class Meta:
-        model = UserModel
+        model = User
         fields = ("id","nickname","solved_amount","points","last_point_at","solved_challenges")
         read_only_field = [
             "id",
@@ -26,5 +31,18 @@ class ScoreboardSerializer(serializers.ModelSerializer):
             "solved_amount",
             "points",
             "last_point_at"
+        ]
+        ordering = ['points']
+
+class TeamScoreboardSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Team
+        fields = ("id","name","avatar_url","solved_amount","points","solved_challenges")
+        read_only_field = [
+            "id",
+            "name",
+            "avatar_url",
+            "solved_amount",
+            "points",
         ]
         ordering = ['points']

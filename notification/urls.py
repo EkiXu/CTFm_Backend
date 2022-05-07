@@ -1,4 +1,4 @@
-from django.conf.urls import include, url
+from django.urls import include, re_path
 from rest_framework.routers import DefaultRouter
 
 from notification import views
@@ -14,5 +14,5 @@ router.register(r'admin/notification', views.AdminNotificationViewSet)
 # The API URLs are now determined automatically by the router.
 # Additionally, we include the login URLs for the browsable API.
 urlpatterns = [
-    url(r'', include(router.urls)),
+    re_path(r'', include(router.urls)),
 ]

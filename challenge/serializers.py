@@ -3,8 +3,6 @@ from django.db import models
 from rest_framework import serializers
 from challenge.models import Challenge,SolutionDetail,ChallengeCategory
 
-from django.contrib.auth import get_user_model
-
 class ChallengeCategorySerializer(serializers.ModelSerializer):
     challenge_amount = serializers.SerializerMethodField()
     class Meta:
@@ -34,7 +32,7 @@ class FullChallengeSerializer(serializers.ModelSerializer):
             "attempt_amount",
             "points",
         ]
-        extra_kwargs = {"attachment_url": {"required": False, "allow_null": True,"allow_blank": True},"summary": {"required": False, "allow_null": True,"allow_blank": True}}
+        extra_kwargs = {"flag": {"required": False, "allow_null": True,"allow_blank": True},"attachment_url": {"required": False, "allow_null": True,"allow_blank": True},"summary": {"required": False, "allow_null": True,"allow_blank": True}}
 
 class TinyChallengeSerializer(serializers.ModelSerializer):
     class Meta:
@@ -84,7 +82,7 @@ class ChallengeSerializer(BaseChallengeSerializer):
 class ChallengeDetailSerializer(ChallengeSerializer):
     class Meta:
         model = Challenge
-        fields = ['id', 'title','content','author','attachment_url','have_dynamic_container']
+        fields = ['id', 'title','content','author','attachment_url','has_dynamic_container']
         read_only_fields = [
             "id",
         ]

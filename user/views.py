@@ -1,10 +1,6 @@
-from functools import partial
-from django.conf import settings
 from django.contrib.sites.shortcuts import get_current_site
-from django.core.exceptions import ObjectDoesNotExist
 from django.contrib import auth
 from django.contrib.auth.hashers import make_password,check_password
-from django.utils.encoding import force_text
 from rest_framework import viewsets
 from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.permissions import IsAuthenticated,AllowAny,IsAdminUser,IsAuthenticatedOrReadOnly
@@ -19,8 +15,7 @@ from user import serializers
 from user import throttles
 from user import pemissions
 from user import utils
-
-UserModel = auth.get_user_model()
+from user import models
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -31,14 +26,14 @@ def logout(request):
     try:
         token = RefreshToken(request.data['token'])
         token.blacklist()
-        return Response({"detail":"block successfully"},status=status.HTTP_200_OK)
+        return Response({"detail":"logout successfully"},status=status.HTTP_200_OK)
     except Exception:
         return Response(status=status.HTTP_400_BAD_REQUEST)
     
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
-@throttle_classes([throttles.TenPerMinuteUserThrottle])
+@throttle_classes([throttles.TwentyPerMinuteUserThrottle])
 def register(request):
     """
     Register
@@ -54,14 +49,14 @@ def register(request):
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
-@throttle_classes([throttles.TenPerMinuteUserThrottle])
+@throttle_classes([throttles.TwentyPerMinuteUserThrottle])
 def activate(request,user_id,token):
     """
     Activate
     """
     try:
-        user = UserModel.objects.get(id=user_id)
-    except(TypeError, ValueError, OverflowError, UserModel.DoesNotExist):
+        user = models.User.objects.get(id=user_id)
+    except(TypeError, ValueError, OverflowError, models.User.DoesNotExist):
         user = None
     if user is not None and user.is_verified:
         return Response({"detail":"Already Verified."},status=status.HTTP_208_ALREADY_REPORTED)
@@ -76,7 +71,7 @@ def activate(request,user_id,token):
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
-@throttle_classes([throttles.TenPerMinuteUserThrottle])
+@throttle_classes([throttles.TwentyPerMinuteUserThrottle])
 def obtainToken(request):
     """
     Login
@@ -95,7 +90,7 @@ def obtainToken(request):
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
-@throttle_classes([throttles.TenPerMinuteUserThrottle])
+@throttle_classes([throttles.TwentyPerMinuteUserThrottle])
 def resetPasswordRequest(request):
     """
     Send ResetPassword Email
@@ -108,8 +103,8 @@ def resetPasswordRequest(request):
         return Response({"detail":"Invalid Email Address"},status=status.HTTP_400_BAD_REQUEST)
     
     try:
-        user = UserModel.objects.get(email = email)
-    except(TypeError, ValueError, OverflowError, UserModel.DoesNotExist):
+        user = models.User.objects.get(email = email)
+    except(TypeError, ValueError, OverflowError, models.User.DoesNotExist):
         user = None
 
     if user == None:
@@ -120,14 +115,14 @@ def resetPasswordRequest(request):
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
-@throttle_classes([throttles.TenPerMinuteUserThrottle])
+@throttle_classes([throttles.TwentyPerMinuteUserThrottle])
 def resetPassword(request,user_id,token):
     """
     ResetPassword
     """
     try:
-        user = UserModel.objects.get(id=user_id)
-    except(TypeError, ValueError, OverflowError, UserModel.DoesNotExist):
+        user = models.User.objects.get(id=user_id)
+    except(TypeError, ValueError, OverflowError, models.User.DoesNotExist):
         user = None
     if user is not None and not user.is_verified:
         return Response({"detail":"Invalid User"},status=status.HTTP_400_BAD_REQUEST)
@@ -149,12 +144,12 @@ class UserViewSet(RetrieveModelMixin,
     """
     User viewset automatically provides `retrieve` and `update` actions.
     """
-    queryset = UserModel.objects.all()
+    queryset = models.User.objects.all()
     pagination_class = LimitOffsetPagination
     
     def get_throttles(self):
         if self.action == "verifyEmail":
-            throttle_classes = [throttles.TenPerMinuteUserThrottle]
+            throttle_classes = [throttles.TwentyPerMinuteUserThrottle]
         else: 
             throttle_classes = []
         return [throttle() for throttle in throttle_classes]
@@ -235,7 +230,7 @@ class AdminUserViewSet(viewsets.ModelViewSet):
     User viewset automatically provides `list`, `create`, `retrieve`,
     `update` and `destroy` actions.
     """
-    queryset = UserModel.objects.all()
+    queryset = models.User.objects.all()
     pagination_class = LimitOffsetPagination
     permission_classes = [IsAdminUser]
     serializer_class = serializers.UserFullSerializer

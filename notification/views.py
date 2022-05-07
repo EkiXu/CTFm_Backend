@@ -9,10 +9,6 @@ from notification import serializers
 # Create your views here.
 
 class NotificationViewSet(viewsets.ReadOnlyModelViewSet):
-    """
-    Notification viewset automatically provides `list`, `create`, `retrieve`,
-    `update` and `destroy` actions.
-    """
     queryset = Notification.objects.all()
     serializer_class = serializers.NotificationSerializer
     pagination_class = LimitOffsetPagination
@@ -20,10 +16,6 @@ class NotificationViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class AdminNotificationViewSet(viewsets.ModelViewSet):
-    """
-    Notification viewset automatically provides `list`, `create`, `retrieve`,
-    `update` and `destroy` actions.
-    """
     queryset = Notification.objects.all()
     serializer_class = serializers.NotificationSerializer
     pagination_class = LimitOffsetPagination

@@ -1,5 +1,4 @@
-from django.urls import path
-from django.conf.urls import include, url
+from django.urls import include, re_path,path
 
 from user import views
 
@@ -25,9 +24,9 @@ urlpatterns = [
     path('auth/refresh_token/', TokenRefreshView.as_view(),name="token_refresh"),
     path('auth/verify_token/',TokenVerifyView.as_view(), name='token_verify'),
     path('auth/reset_password_email/',views.resetPasswordRequest, name='reset_password_email'),
-    url(r'^auth/activate/(?P<user_id>\d+)/(?P<token>[0-9A-Za-z]{1,13}-[0-9A-Za-z]{1,32})/$',
+    re_path(r'^auth/activate/(?P<user_id>\d+)/(?P<token>[0-9A-Za-z]{1,13}-[0-9A-Za-z]{1,32})/$',
         views.activate, name='activate'),
-    url(r'^auth/reset_password/(?P<user_id>\d+)/(?P<token>[0-9A-Za-z]{1,13}-[0-9A-Za-z]{1,32})/$',
+    re_path(r'^auth/reset_password/(?P<user_id>\d+)/(?P<token>[0-9A-Za-z]{1,13}-[0-9A-Za-z]{1,32})/$',
         views.resetPassword, name='activate'),
-    url(r'', include(router.urls)),
+    re_path(r'', include(router.urls)),
 ]

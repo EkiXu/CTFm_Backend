@@ -7,7 +7,6 @@ import json
 from tencentcloud.common import credential
 from tencentcloud.common.profile.client_profile import ClientProfile
 from tencentcloud.common.profile.http_profile import HttpProfile
-from tencentcloud.common.exception.tencent_cloud_sdk_exception import TencentCloudSDKException
 from tencentcloud.ses.v20201002 import ses_client, models
 
 from contest.models import Contest
@@ -21,21 +20,22 @@ class TokenGenerator(PasswordResetTokenGenerator):
 
 account_activation_token = TokenGenerator()
 
+cred:credential.Credential
+if settings.ENABLE_EMAIL_VALIDATION:
+    cred = credential.Credential(settings.TENCENT_SECRET_ID, settings.TENCENT_SECRET_KEY) 
+    httpProfile = HttpProfile()
+    httpProfile.endpoint = "ses.tencentcloudapi.com"
 
-cred = credential.Credential(settings.TENCENT_SECRET_ID, settings.TENCENT_SECRET_KEY) 
-httpProfile = HttpProfile()
-httpProfile.endpoint = "ses.tencentcloudapi.com"
-
-clientProfile = ClientProfile()
-clientProfile.httpProfile = httpProfile
-client = ses_client.SesClient(cred, "ap-hongkong", clientProfile) 
+    clientProfile = ClientProfile()
+    clientProfile.httpProfile = httpProfile
+    client = ses_client.SesClient(cred, "ap-hongkong", clientProfile) 
 
 def sendRegisterValidationEmail(user,current_site):
-    contest = Contest.objects.all().first()
+    contest:Contest = Contest.objects.all().first()
     templateData = {
         "contest_name":contest.name,
         "username": user.username,
-        "sign_up_url":"{0}/activate/{1}/{2}".format(current_site.domain,user.id,account_activation_token.make_token(user))
+        "sign_up_url":"http://{0}/activate/{1}/{2}".format(current_site.domain,user.id,account_activation_token.make_token(user))
     }
 
     req = models.SendEmailRequest()
@@ -56,7 +56,7 @@ def sendRegisterValidationEmail(user,current_site):
 
 
 def sendResetPasswordmail(user,current_site):
-    contest = Contest.objects.all().first()
+    contest:Contest = Contest.objects.all().first()
     templateData = {
         "contest_name":contest.name,
         "username": user.username,
