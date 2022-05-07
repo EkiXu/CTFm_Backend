@@ -30,9 +30,12 @@ class ControlUtils:
 
     @staticmethod
     def remove_user_challenge_container(user_id,challenge_id):
-        docker_result = DockerUtils.remove_user_challenge_container(user_id,challenge_id)
+        container = DBUtils.get_user_challenge_container(user_id,challenge_id)
+        if container == None:
+            return False
+        docker_result = DockerUtils.remove_user_container(user_id,container.uuid)
+        
         if docker_result:
-            container = ControlUtils.get_user_challenge_container(user_id,challenge_id)
             port = container.port
             DBUtils.drop_user_challenge_container(user_id,challenge_id)
             if port != 0:
@@ -45,7 +48,7 @@ class ControlUtils:
     def remove_container(container:models.ChallengeContainer):
         user_id = container.user.id
         challenge_id = container.challenge.id
-        docker_result = DockerUtils.remove_user_challenge_container(user_id,challenge_id)
+        docker_result = DockerUtils.remove_user_container(user_id,container.uuid)
         if docker_result:
             port = container.port
             DBUtils.drop_user_challenge_container(user_id,challenge_id)
@@ -57,7 +60,7 @@ class ControlUtils:
 
     @staticmethod
     def renew_user_challenge_container(user_id, challenge_id):
-        DBUtils.renew_user_challenge_container(user_id=user_id, challenge_id=challenge_id)
+        return DBUtils.renew_user_challenge_container(user_id=user_id, challenge_id=challenge_id)
 
     @staticmethod
     def get_user_challenge_container(user_id,challenge_id)->models.ChallengeContainer:

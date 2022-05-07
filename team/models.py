@@ -1,6 +1,7 @@
 from datetime import datetime
+from django.utils import timezone
 from django.db import models
-from django.db.models.aggregates import Sum
+from django.db.models.aggregates import Sum,Max
 from django.core.cache import cache
 from django.db.models.signals import post_delete, post_save
 
@@ -22,9 +23,10 @@ class Team(models.Model):
     def points(self) -> float:
         value = 0
         all_solved_challenge = SolutionDetail.objects.filter(team=self).filter(solved=True).filter(user__is_hidden=False).filter(challenge__is_hidden=False).filter(challenge__is_hidden=False)
-        solved_challenge:SolutionDetail
+        all_solved_challenge = set([each.challenge for each in all_solved_challenge])
+        # solved_challenge:SolutionDetail
         for solved_challenge in all_solved_challenge:
-            value = value+ solved_challenge.challenge.points
+            value += solved_challenge.points
         return value
 
     @property
@@ -46,9 +48,8 @@ class Team(models.Model):
 
     @property
     def solved_amount(self) -> int:
-        amount = SolutionDetail.objects.filter(team = self).filter(solved=True).filter(user__is_hidden=False).filter(challenge__is_hidden=False).count()
-        return amount
-
+        amount = SolutionDetail.objects.filter(team = self).filter(solved=True).filter(user__is_hidden=False).filter(challenge__is_hidden=False)
+        return len(amount)
     @property
     def solved_challenges(self) -> int:
         challenges = SolutionDetail.objects.filter(team = self).filter(solved=True).filter(user__is_hidden=False).filter(challenge__is_hidden=False).values("challenge","pub_date")
@@ -58,6 +59,13 @@ class Team(models.Model):
     def attempt_amount(self) -> int:
         amount = SolutionDetail.objects.filter(team = self).aggregate(nums=Sum('times'))
         return amount
+    
+    @property
+    def last_point_at(self):
+        res = self.user_set.all().aggregate(Max('last_point_at'))['last_point_at__max']
+        if not res:
+            return timezone.now()
+        return res
 
 def change_team_rank_updated_at(sender=None, instance=None, *args, **kwargs):
     cache.set("team_rank_updated_at", datetime.utcnow())

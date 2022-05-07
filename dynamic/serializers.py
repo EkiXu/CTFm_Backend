@@ -2,6 +2,7 @@ from rest_framework import serializers
 
 from dynamic import models
 from dynamic.db_utils import DBUtils
+from challenge.models import Challenge
 
 class WhaleConfigSerializer(serializers.ModelSerializer):
     class Meta:
@@ -11,18 +12,25 @@ class WhaleConfigSerializer(serializers.ModelSerializer):
 class BaseChallengeContainerSerializer(serializers.BaseSerializer):
     def to_representation(self, instance:models.ChallengeContainer):
         host = instance.host
-        if host == "" or host == None:
+        port = instance.port
+        challenge:Challenge = instance.challenge
+        if challenge.protocol == Challenge.HTTP:
+            host = str(instance.uuid)+DBUtils.get_config("frp_http_domain_suffix")
+            port = DBUtils.get_config("frp_http_port")
+        else:
             host = DBUtils.get_config("frp_direct_ip_address")
+        
         
         return {
             'uuid': str(instance.uuid),
             'host':host,
-            'protocol': instance.challenge.protocol,
-            'port': instance.port,
+            'protocol': challenge.protocol,
+            'port': port,
             'user': instance.user.id,
-            'challenge': instance.challenge.id,
+            'challenge': challenge.id,
             'status': instance.status,
             'start_time':instance.start_time,
+            'timeout': DBUtils.get_config("docker_container_timeout", "3600"),
         }
 class FullChallengeContainerSerializer(serializers.ModelSerializer):
     class Meta:

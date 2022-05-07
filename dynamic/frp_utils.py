@@ -42,7 +42,7 @@ class FrpUtils:
             if dynamic_docker_challenge.protocol == Challenge.HTTP:
                 output += http_template % (
                     str(c.user_id) + '-' + str(c.uuid), str(c.user_id) + '-' + str(c.uuid),
-                    dynamic_docker_challenge.redirect_port, c.uuid + domain)
+                    dynamic_docker_challenge.redirect_port, str(c.uuid) + domain)
             elif dynamic_docker_challenge.protocol == Challenge.TCP:
                 output += direct_template % (
                     str(c.user_id) + '-' + str(c.uuid), str(c.user_id) + '-' + str(c.uuid),
@@ -50,8 +50,9 @@ class FrpUtils:
                     str(c.user_id) + '-' + str(c.uuid), str(c.user_id) + '-' + str(c.uuid),
                     dynamic_docker_challenge.redirect_port, c.port)
 
-        requests.put("http://" + configs.get("frp_api_ip") + ":" + configs.get("frp_api_port") + "/api/config", output,
+        requests.put("http://" + configs.get("frp_api_host") + ":" + configs.get("frp_api_port") + "/api/config", output,
                      timeout=5)
         
-        requests.get("http://" + configs.get("frp_api_ip") + ":" + configs.get("frp_api_port") + "/api/reload", timeout=5)
+        res = requests.get("http://" + configs.get("frp_api_host") + ":" + configs.get("frp_api_port") + "/api/reload", timeout=5)
+        return res
         

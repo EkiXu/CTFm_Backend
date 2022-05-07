@@ -1,4 +1,4 @@
 from rest_framework.throttling import UserRateThrottle
 
-class TenPerMinuteUserThrottle(UserRateThrottle):
-    rate = '10/min'
+class TwentyPerMinuteUserThrottle(UserRateThrottle):
+    rate = '20/min'

@@ -13,6 +13,7 @@ from rest_framework_extensions.mixins import NestedViewSetMixin
 from challenge.models import Challenge, SolutionDetail, ChallengeCategory
 from challenge import serializers
 from challenge import throttles
+from challenge.throttles import ThirtyPerMinuteUserThrottle as ChallengThrottleRate
 from challenge import utils
 from challenge import permissions
 from challenge import models
@@ -89,7 +90,7 @@ class ChallengeViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_throttles(self):
         if self.action == "check_action" or self.action:
-            throttle_classes = [throttles.TenPerMinuteUserThrottle]
+            throttle_classes = [ChallengThrottleRate]
         else:
             throttle_classes = []
         return [throttle() for throttle in throttle_classes]
@@ -132,13 +133,13 @@ class ChallengeViewSet(viewsets.ReadOnlyModelViewSet):
         try:
             flag = request.data['flag']
             #detail = SolutionDetail.objects.get(challenge=challenge, user=request.user)
-            detail = SolutionDetail.objects.get(challenge=challenge, team=team)
+            detail = SolutionDetail.objects.filter(challenge=challenge, team=team, solved=True)[0]
         except KeyError:
             return Response({'detail': 'Flag Field is NULL.'}, status=status.HTTP_400_BAD_REQUEST)
-        except ObjectDoesNotExist:
+        except (ObjectDoesNotExist, IndexError):
             user = request.user
             detail = SolutionDetail(challenge=challenge, user=user, team=user.team, solved=False)
-
+        
         if detail.solved:
             return Response({'detail': 'Already Solved'}, status=status.HTTP_400_BAD_REQUEST)
         else:
@@ -154,8 +155,8 @@ class ChallengeViewSet(viewsets.ReadOnlyModelViewSet):
                 cache.set("rank_updated_at", datetime.utcnow())
                 cache.set("challenge_points_updated_at", datetime.utcnow())
                 amount = challenge.solved_amount
-                if amount < 3:
-                    detail = f"Congratulations to [{request.user}] for getting the {utils.challenge_bloods[amount - 1]} of [{challenge.title}]"
+                if amount <= 3:
+                    detail = f"Congratulations to [{request.user}] from [{user.team.name}] for getting the {utils.challenge_bloods[amount - 1]} of [{challenge.title}]"
                     async_to_sync(channel_layer.group_send)("challenge", {"type": "challenge.message", "message": detail})
                 return Response({'detail': 'Solved Successfully'})
             else:
@@ -218,9 +219,10 @@ class ChallengeViewSet(viewsets.ReadOnlyModelViewSet):
         if container.renew_count >= docker_max_renew_count:
             return Response(data={'success': False, 'detail': 'Max renewal times exceed.'})
         
-        ControlUtils.renew_user_challenge_container(user.id, challenge.id)
+        container = ControlUtils.renew_user_challenge_container(user.id, challenge.id)
         redis_util.release_lock()
-        return Response(data={'success': True})
+        serializer = BaseChallengeContainerSerializer(instance=container)
+        return  Response(serializer.data, status=status.HTTP_201_CREATED)
 
     def delete_container(self,request,challenge:models.Challenge,pk=None,*args,**kwargs):
         user = request.user
@@ -235,7 +237,7 @@ class ChallengeViewSet(viewsets.ReadOnlyModelViewSet):
         else:
             return Response(data={'success': False, 'detail': 'Failed when destroy instance, please contact admin!'})
 
-    @action(detail=True, methods=['GET', 'POST','PATCH', 'DELETE'], url_name='manage_environment', url_path='env')
+    @action(detail=True, methods=['GET', 'POST','PATCH', 'DELETE'], url_name='manage_environment', url_path='env',throttle_classes=[throttles.ContainerRateThrottle])
     @contest_began_or_forbbiden
     def manage_container(self, request, pk=None, *args, **kwargs):
         """

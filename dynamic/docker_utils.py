@@ -96,7 +96,7 @@ class DockerUtils:
 
             client.services.create(image=dynamic_docker_challenge.image, name=str(user_id) + '-' + uuid_code,
                                    env={'FLAG': flag}, dns_config=docker.types.DNSConfig(nameservers=dns),
-                                   networks=[configs.get("docker_auto_connect_network", "ctfd_frp-containers")],
+                                   networks=[configs.get("docker_auto_connect_network", "ctfm_frp_containers")],
                                    resources=docker.types.Resources(mem_limit=DockerUtils.convert_readable_text(
                                        dynamic_docker_challenge.memory_limit),
                                        cpu_limit=int(
@@ -135,26 +135,23 @@ class DockerUtils:
         return 0
 
     @staticmethod
-    def remove_user_challenge_container(user_id,challenge_id, is_retry=False):
+    def remove_user_container(user_id,container_uuid, is_retry=False):
+        container_uuid = str(container_uuid)
         configs = DBUtils.get_all_configs()
-        container = DBUtils.get_user_challenge_container(user_id=user_id,challenge_id=challenge_id)
 
         auto_containers = configs.get("docker_auto_connect_containers", "").split(",")
 
-        if container is None:
-            return False
-
         try:
             client = docker.DockerClient(base_url=configs.get("docker_api_url"))
-            networks = client.networks.list(names=[str(user_id) + '-' + str(container.uuid)])
+            networks = client.networks.list(names=[str(user_id) + '-' + str(container_uuid)])
 
             if len(networks) == 0:
-                services = client.services.list(filters={'name': str(user_id) + '-' + str(container.uuid)})
+                services = client.services.list(filters={'name': str(user_id) + '-' + str(container_uuid)})
                 for s in services:
                     s.remove()
             else:
                 redis_util = RedisUtils()
-                services = client.services.list(filters={'label': str(user_id) + '-' + str(container.uuid)})
+                services = client.services.list(filters={'label': str(user_id) + '-' + str(container_uuid)})
                 for s in services:
                     s.remove()
 
@@ -170,6 +167,6 @@ class DockerUtils:
         except Exception as e:
             traceback.print_exc()
             if not is_retry:
-                return DockerUtils.remove_user_challenge_container(user_id,challenge_id, True)
+                return DockerUtils.remove_user_container(user_id,container_uuid, True)
             return False
         

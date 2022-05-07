@@ -22,7 +22,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/3.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = getenv("SECRET_KEY","MODIFIY_IT_YOURSELF!")
+SECRET_KEY = open(getenv("SECRET_KEY_FILE")).read()
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -40,7 +40,6 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'django_crontab',
     'rest_framework',
     'challenge.apps.ChallengeConfig',
     'user.apps.UserConfig',
@@ -90,7 +89,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': getenv("DB_NAME","ctfm"),
         'USER': getenv("DB_USER","ctfm"),
-        'PASSWORD': getenv("DB_PASSWORD","password"),
+        'PASSWORD': open(getenv("DB_PASSWORD_FILE"),"r").read(),
         'HOST': getenv("DB_HOST","db"),
         'PORT': getenv("DB_PORT","5432"),
     }
@@ -101,7 +100,7 @@ CACHES = {
         "BACKEND": "django_redis.cache.RedisCache",
         "LOCATION": "redis://"+getenv("REDIS_HOST","redis")+":"+getenv("REDIS_PORT","6379"),
         "OPTIONS": {
-            "PASSWORD":getenv("REDIS_PASSWORD","redispassord"),
+            "PASSWORD": open(getenv("REDIS_PASSWORD_FILE"),"r").read(),
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
         }
     }
@@ -117,7 +116,7 @@ CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
-            "hosts": [("redis://:"+getenv("REDIS_PASSWORD","redispassword")+"@"+getenv("REDIS_HOST","redis")+":"+getenv("REDIS_PORT","6379")+"/0")],
+            "hosts": [("redis://:"+open(getenv("REDIS_PASSWORD_FILE"),"r").read()+"@"+getenv("REDIS_HOST","redis")+":"+getenv("REDIS_PORT","6379")+"/0")],
         },
     },
 }
@@ -175,8 +174,8 @@ REST_FRAMEWORK = {
         'rest_framework.throttling.UserRateThrottle'
     ],
     'DEFAULT_THROTTLE_RATES': {
-        'anon': '200/day',
-        'user': '2800/day'
+        'anon': '1000/day',
+        'user': '10800/day'
     }
 }
 
@@ -212,10 +211,6 @@ SIMPLE_JWT = {
     'SLIDING_TOKEN_LIFETIME': timedelta(days=1),
     'SLIDING_TOKEN_REFRESH_LIFETIME': timedelta(days=7),
 }
-
-CRONJOBS = [
-    ('0/10 * * * *', 'dynamic.cron.auto_clean_container')
-]
 
 
 DRF_RECAPTCHA_DOMAIN = "www.recaptcha.net"

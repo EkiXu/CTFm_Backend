@@ -4,8 +4,7 @@ RUN mkdir -p /backend
 WORKDIR /backend
 
 COPY ./requirements.txt /backend/
-RUN pip config set global.index-url https://mirrors.cloud.tencent.com/pypi/simple \
-    && pip install --upgrade pip \
+RUN pip install --upgrade pip \
     && pip install -r requirements.txt \
     && pip install supervisor \
     && pip install uwsgi  \

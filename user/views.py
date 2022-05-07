@@ -33,7 +33,7 @@ def logout(request):
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
-@throttle_classes([throttles.TenPerMinuteUserThrottle])
+@throttle_classes([throttles.TwentyPerMinuteUserThrottle])
 def register(request):
     """
     Register
@@ -49,7 +49,7 @@ def register(request):
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
-@throttle_classes([throttles.TenPerMinuteUserThrottle])
+@throttle_classes([throttles.TwentyPerMinuteUserThrottle])
 def activate(request,user_id,token):
     """
     Activate
@@ -71,7 +71,7 @@ def activate(request,user_id,token):
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
-@throttle_classes([throttles.TenPerMinuteUserThrottle])
+@throttle_classes([throttles.TwentyPerMinuteUserThrottle])
 def obtainToken(request):
     """
     Login
@@ -90,7 +90,7 @@ def obtainToken(request):
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
-@throttle_classes([throttles.TenPerMinuteUserThrottle])
+@throttle_classes([throttles.TwentyPerMinuteUserThrottle])
 def resetPasswordRequest(request):
     """
     Send ResetPassword Email
@@ -115,7 +115,7 @@ def resetPasswordRequest(request):
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
-@throttle_classes([throttles.TenPerMinuteUserThrottle])
+@throttle_classes([throttles.TwentyPerMinuteUserThrottle])
 def resetPassword(request,user_id,token):
     """
     ResetPassword
@@ -149,7 +149,7 @@ class UserViewSet(RetrieveModelMixin,
     
     def get_throttles(self):
         if self.action == "verifyEmail":
-            throttle_classes = [throttles.TenPerMinuteUserThrottle]
+            throttle_classes = [throttles.TwentyPerMinuteUserThrottle]
         else: 
             throttle_classes = []
         return [throttle() for throttle in throttle_classes]

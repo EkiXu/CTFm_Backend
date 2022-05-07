@@ -1,5 +1,6 @@
 from rest_framework.serializers import Serializer
 from rest_framework.viewsets import GenericViewSet
+from django.utils import timezone
 import challenge
 from heapq import nlargest
 
@@ -121,11 +122,11 @@ class TopTenTeamTrendView(APIView):
 class ScoreboardView(ListAPIView):
     serializer_class = serializers.ScoreboardSerializer
     pagination_class = paginations.ScoreboardPagination
-    queryset = User.objects.all().filter(is_hidden=False)
+    queryset = User.objects.all().filter(is_hidden=False).exclude(last_point_at__isnull=True)
 
     @cache_response(key_func=utils.ScoreboardKeyConstructor())
     def list(self, request, *args, **kwargs):
-        playerQueryset = sorted(self.get_queryset(), key=lambda t: t.points,reverse=True)
+        playerQueryset = sorted(self.get_queryset(), key=lambda t: (-t.points,t.last_point_at))
         challengeQueryset = []
         if not utils.IsBeforeContest():
             challengeQueryset = Challenge.objects.all().filter(is_hidden=False)
@@ -147,10 +148,10 @@ class TeamScoreboardView(ListAPIView):
 
     @cache_response(key_func=utils.ScoreboardKeyConstructor())
     def list(self, request, *args, **kwargs):
-        playerQueryset = sorted(self.get_queryset(), key=lambda t: t.points,reverse=True)
+        playerQueryset = sorted(self.get_queryset(), key=lambda t: (-t.points,t.last_point_at))
         challengeQueryset = []
         if not utils.IsBeforeContest():
-            challengeQueryset = Challenge.objects.all()
+            challengeQueryset =  Challenge.objects.all().filter(is_hidden=False)
 
         challengeSerializer = TinyChallengeSerializer(challengeQueryset, many=True)
         

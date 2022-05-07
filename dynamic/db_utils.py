@@ -81,7 +81,7 @@ class DBUtils:
     @staticmethod
     def get_all_alive_container():
         configs = DBUtils.get_all_configs()
-        timeout = int(configs.get("docker_timeout", "3600"))
+        timeout = int(configs.get("docker_container_timeout", "3600"))
 
         query  = models.ChallengeContainer.objects.get_queryset()
         query  = query.filter(start_time__gte = timezone.now() - timezone.timedelta(seconds=timeout))
@@ -90,7 +90,7 @@ class DBUtils:
     @staticmethod
     def get_all_alive_container_count():
         configs = DBUtils.get_all_configs()
-        timeout = int(configs.get("docker_timeout", "3600"))
+        timeout = int(configs.get("docker_container_timeout", "3600"))
 
         query = models.ChallengeContainer.objects.get_queryset()
         query = query.filter(start_time__gte = timezone.now() - timezone.timedelta(seconds=timeout))
@@ -99,7 +99,7 @@ class DBUtils:
     @staticmethod
     def get_all_expired_container():
         configs = DBUtils.get_all_configs()
-        timeout = int(configs.get("docker_timeout", "3600"))
+        timeout = int(configs.get("docker_container_timeout", "3600"))
 
         query = models.ChallengeContainer.objects.get_queryset()
         query = query.filter(start_time__lt = timezone.now() - timezone.timedelta(seconds=timeout))
