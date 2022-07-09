@@ -145,16 +145,16 @@ class ChallengeViewSet(viewsets.ReadOnlyModelViewSet):
         else:
             detail.times += 1
 
-        # Implementation for dynamic flags LemonPrefect<me@lemonprefect.cn>
-        if challenge.has_dynamic_container:
-            user = request.user
-            container = ControlUtils.get_user_challenge_container(user, challenge)
-            if container is None:
-                return Response(
-                    {'detail': 'Container should have been launched at first.'},
-                    status=status.HTTP_406_NOT_ACCEPTABLE
-                )
-            challenge.flag = container.flag
+            # Implementation for dynamic flags LemonPrefect<me@lemonprefect.cn>
+            if challenge.has_dynamic_container:
+                user = request.user
+                container = ControlUtils.get_user_challenge_container(user, challenge)
+                if container is None:
+                    return Response(
+                        {'detail': 'Container should have been launched at first.'},
+                        status=status.HTTP_406_NOT_ACCEPTABLE
+                    )
+                challenge.flag = container.flag
 
             if challenge.flag == flag:
                 user = request.user
