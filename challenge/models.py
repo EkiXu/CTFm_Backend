@@ -71,9 +71,12 @@ class Challenge(models.Model):
     def points(self) -> float:
         if self.decay == 0:
             return self.initial_points
+        solved_amount = self.solved_amount 
+        if solved_amount == 1:
+            solved_amount == 0
         value = (
             ((self.minimum_points - self.initial_points) / (self.decay ** 2))
-            * (self.solved_amount ** 2)
+            * (solved_amount ** 2)
         ) + self.initial_points
         if(value < self.minimum_points):
             value = self.minimum_points 

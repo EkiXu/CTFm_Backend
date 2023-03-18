@@ -20,6 +20,8 @@ router.register(r'admin/user', views.AdminUserViewSet)
 
 urlpatterns = [
     path('auth/register/', views.register),
+    path('auth/logout/', views.logout),
+    path('auth/recaptcha/', views.recaptcha),
     path('auth/obtain_token/', views.obtainToken,name="token_obtain"),
     path('auth/refresh_token/', TokenRefreshView.as_view(),name="token_refresh"),
     path('auth/verify_token/',TokenVerifyView.as_view(), name='token_verify'),

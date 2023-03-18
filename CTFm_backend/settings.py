@@ -208,13 +208,14 @@ SIMPLE_JWT = {
     'JTI_CLAIM': 'jti',
 
     'SLIDING_TOKEN_REFRESH_EXP_CLAIM': 'refresh_exp',
-    'SLIDING_TOKEN_LIFETIME': timedelta(days=1),
+    'SLIDING_TOKEN_LIFETIME': timedelta(hours=8),
     'SLIDING_TOKEN_REFRESH_LIFETIME': timedelta(days=7),
 }
 
 
 DRF_RECAPTCHA_DOMAIN = "www.recaptcha.net"
 DRF_RECAPTCHA_SECRET_KEY = ""
+CLIENT_RECAPTCHA_SECRET_KEY = ""
 
 # EMAIL VALIDATION
 ENABLE_EMAIL_VALIDATION = False

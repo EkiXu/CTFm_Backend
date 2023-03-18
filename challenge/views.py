@@ -125,7 +125,7 @@ class ChallengeViewSet(viewsets.ReadOnlyModelViewSet):
     @action(detail=True, methods=['POST'], url_name='checkFlag', url_path='_checkFlag')
     @in_contest_time_or_forbbiden
     def check_flag(self, request, pk=None, *args, **kwargs):
-        challenge = self.get_object()
+        challenge:models.Challenge = self.get_object()
         flag = ""
         team = request.user.team
         if team == None:
@@ -133,10 +133,13 @@ class ChallengeViewSet(viewsets.ReadOnlyModelViewSet):
         try:
             flag = request.data['flag']
             #detail = SolutionDetail.objects.get(challenge=challenge, user=request.user)
-            detail = SolutionDetail.objects.filter(challenge=challenge, team=team, solved=True)[0]
         except KeyError:
             return Response({'detail': 'Flag Field is NULL.'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            # Try to get first detail
+            detail = SolutionDetail.objects.filter(challenge=challenge, team=team, solved=True)[0]
         except (ObjectDoesNotExist, IndexError):
+            # Initialize the solution detail
             user = request.user
             detail = SolutionDetail(challenge=challenge, user=user, team=user.team, solved=False)
         
@@ -145,7 +148,21 @@ class ChallengeViewSet(viewsets.ReadOnlyModelViewSet):
         else:
             detail.times += 1
 
-            if challenge.flag == flag:
+            # challenge.flag is empty and has a dynamic_container
+            # then challenge has dynamic flag
+            if len(challenge.flag) == 0 and challenge.has_dynamic_container:
+                user = request.user
+                container = ControlUtils.get_user_challenge_container(user, challenge)
+                if container is None:
+                    return Response(
+                        {'detail': 'Container should have been launched at first.'},
+                        status=status.HTTP_406_NOT_ACCEPTABLE
+                    )
+                challenge_flag = container.flag
+            else:
+                challenge_flag = challenge.flag 
+
+            if challenge_flag == flag:
                 user = request.user
                 detail.solved = True
                 detail.save()

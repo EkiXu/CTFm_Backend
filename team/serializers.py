@@ -10,7 +10,7 @@ from team import utils
 class BaseTeamSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.Team
-        fields = ['id','name','avatar_url','description',"solved_amount","points"]
+        fields = ['id','name',"solved_amount","points"]
         read_only_fields = [
             "id",
             "name",
@@ -21,7 +21,7 @@ class BaseTeamSerializer(serializers.ModelSerializer):
 class DetailedTeamSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.Team
-        fields = ['id','name','avatar_url','description','leader','token',"solved_amount","members","points"]
+        fields = ['id','name','leader','token',"solved_amount","members","points"]
         read_only_fields = [
             "id",
             "token",
@@ -34,7 +34,7 @@ class DetailedTeamSerializer(serializers.ModelSerializer):
 class CreateTeamSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.Team
-        fields = ['id','name','token','description','avatar_url','leader']
+        fields = ['id','name','token','leader']
         read_only_fields = [
             "id",
             "token",

@@ -37,11 +37,10 @@ class ScoreboardSerializer(serializers.ModelSerializer):
 class TeamScoreboardSerializer(serializers.ModelSerializer):
     class Meta:
         model = Team
-        fields = ("id","name","avatar_url","solved_amount","points","solved_challenges")
+        fields = ("id","name","solved_amount","points","solved_challenges")
         read_only_field = [
             "id",
             "name",
-            "avatar_url",
             "solved_amount",
             "points",
         ]

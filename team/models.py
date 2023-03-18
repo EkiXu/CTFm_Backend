@@ -11,8 +11,8 @@ from challenge.models import Challenge,SolutionDetail
 class Team(models.Model):
     name = models.CharField(max_length=64,unique=True)
     token = models.CharField(max_length=64,unique=True)
-    avatar_url = models.CharField(max_length=256)
-    description = models.CharField(max_length=512)
+    # avatar_url = models.CharField(max_length=256)
+    # description = models.CharField(max_length=512)
 
     #取消leader到Team的反查
     leader = models.ForeignKey("user.User",null=True,default=None,on_delete=models.SET_NULL,related_name='+')

@@ -18,6 +18,21 @@ from user import utils
 from user import models
 
 @api_view(['GET'])
+@permission_classes([AllowAny])
+def recaptcha(request):
+    """
+    Send Client recaptcha key
+    """
+    from django.conf import settings
+    
+    try:
+        api_key = settings.CLIENT_RECAPTCHA_SECRET_KEY
+        return Response({"api_key":api_key},status=status.HTTP_200_OK)
+    except Exception:
+        return Response(status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def logout(request):
     """
